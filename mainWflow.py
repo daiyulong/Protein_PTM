@@ -72,7 +72,7 @@ def miss_value_handling(input1,para,pn):
                 df_ = df.loc[union, :]
 
             df_filter = df.loc[[x for x in df.index if x not in df_.index], :]
-            df_filter.to_csv(of + "/filter.csv", index=0)
+            df_filter.to_csv(of + "/missValue_filter.csv", index=0)
             return df_
 
         df2 = Confidence(df=df_data_copy, d_group=d_group, confidence=0.5, how='outer')
@@ -129,41 +129,55 @@ def get_group_numb(groupfile):
 
     return (len(set(L)))
 
+"""获取所有可信位点的motif序列"""
+def get_all_motif_seq(probfile, pn):
+    of = pn + "/MotifAnalysis"
+    if not os.path.exists(of):
+        os.mkdir(of)
+    if os.path.exists(probfile):
+        df = pd.read_excel(probfile)
+        samples = ["PTM.CollapseKey", "window"]
+        print(samples)
+        dfsub = df.loc[:, samples]
+        dfsub.to_csv(of + "/Motif_All.txt", sep="\t", index=False)
+        dfID = dfsub.iloc[0:, -1:]
+        dfID.to_csv(of + "/All_MotifInput.txt", sep="\t", index=False, header=False)
+
 
 
 """全部蛋白的分析"""
 def run_all_protein_analysis(bin, pn, org, celllocation):
     print("### Run All Proteins Analysis ###")
-    olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4\n".format(bin, pn + '/input.txt', pn + '/3.AllProtein', org, bin))
-    os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4".format(bin, pn + '/input.txt', pn + '/3.AllProtein', org, bin))
+    olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4\n".format(bin, pn + '/input.txt', pn + '/AllProtein', org, bin))
+    os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4".format(bin, pn + '/input.txt', pn + '/AllProtein', org, bin))
 
     ########细胞定位的分析的绘图
-    if os.path.exists(p.pn + '/3.AllProtein/GOEnrich_Species/CC.txt'):
-        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/3.AllProtein/GOEnrich_Species/CC.txt',
-                                                             pn + '/3.AllProtein/GO_subcellular_localization', celllocation))
-        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/3.AllProtein/GOEnrich_Species/CC.txt',
-                                                          pn + '/3.AllProtein/GO_subcellular_localization', celllocation))
+    if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
+        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt',
+                                                             pn + '/AllProtein/GO_subcellular_localization', celllocation))
+        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt',
+                                                          pn + '/AllProtein/GO_subcellular_localization', celllocation))
 
     #####增加KEGG分类信息
     olog.write(
-        "{}/addURLClassKEGG {}/3.AllProtein/KEGG/KEGG.enriched.txt {}/3.AllProtein/KEGG/KEGG.enriched.xls\n".format(bin,pn, pn))
+        "{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls\n".format(bin,pn, pn))
     os.system(
-        "{}/addURLClassKEGG {}/3.AllProtein/KEGG/KEGG.enriched.txt {}/3.AllProtein/KEGG/KEGG.enriched.xls".format(bin, pn,pn))
+        "{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls".format(bin, pn,pn))
 
     olog.write(
-        "Rscript {}/txt2xlsx.R {}/3.AllProtein/KEGG/KEGG.enriched.xls KEGG {}/3.AllProtein/KEGG/KEGG.enriched.xlsx\n".format(
+        "Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx\n".format(
             bin, pn, pn))
     os.system(
-        "Rscript {}/txt2xlsx.R {}/3.AllProtein/KEGG/KEGG.enriched.xls KEGG {}/3.AllProtein/KEGG/KEGG.enriched.xlsx".format(
+        "Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx".format(
             bin, pn, pn))
 
     #####所有蛋白结果的绘图
-    olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, pn + '/3.AllProtein'))
-    os.system("Rscript {}/PAAdraw.R {}".format(bin, pn + '/3.AllProtein'))
+    olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, pn + '/AllProtein'))
+    os.system("Rscript {}/PAAdraw.R {}".format(bin, pn + '/AllProtein'))
 
     ############挑选出GO的对应表
-    olog.write("Rscript {}/selectGO.R {} 4 {} {}\n".format(bin, pn + '/input.txt', org, pn + "/3.AllProtein/GO"))
-    os.system("Rscript {}/selectGO.R {} 4 {} {}".format(bin, pn + '/input.txt', org, pn + "/3.AllProtein/GO"))
+    olog.write("Rscript {}/selectGO.R {} 4 {} {}\n".format(bin, pn + '/input.txt', org, pn + "/AllProtein/GO"))
+    os.system("Rscript {}/selectGO.R {} 4 {} {}".format(bin, pn + '/input.txt', org, pn + "/AllProtein/GO"))
 
     ###########生成Summary文件
     olog.write("{}/makeSummary -i {}\n".format(bin, pn))
@@ -176,12 +190,12 @@ def run_all_protein_analysis(bin, pn, org, celllocation):
 ## 未仔细修改
 """多组之间比较的方差分析"""
 def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file, grouporder):
-    olog.write("Rscript {}/extractTable.R {} {}\n".format(bin, input_file, pn + '/matrix.txt'))
-    os.system("Rscript {}/extractTable.R {} {}".format(bin, input_file, pn + '/matrix.txt'))
+    olog.write("Rscript {}/extractTable.R {} {}\n".format(bin, input_file, pn + '/1.Info/matrix.txt'))
+    os.system("Rscript {}/extractTable.R {} {}".format(bin, input_file, pn + '/1.Info/matrix.txt'))
 
-    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/matrix.txt',
+    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/1.Info/matrix.txt',
                                                            pn + '/kmeans', grouporder))
-    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/matrix.txt',
+    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/1.Info/matrix.txt',
                                                         pn + '/kmeans', grouporder))
 
     # 挑选做比较绘图的文件
@@ -245,6 +259,86 @@ def get_python():
         return ("python")
     else:
         return("python3")
+
+
+
+#差异蛋白的筛选
+def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
+    for comp in L:
+        infile = pn + '/' + comp + "/input.txt"
+        groupfile = pn + '/' + comp + '/group.txt'
+        if os.path.exists(infile) and os.path.exists(groupfile):
+            DEP = pn + '/' + comp + '/DESelection'
+            # 提取数据
+            olog.write("Rscript {}/extractTablePTM.R {} {}\n".format(bin, infile, pn + '/' + comp + '/matrix.txt'))
+            os.system("Rscript {}/extractTablePTM.R {} {}".format(bin, infile, pn + '/' + comp + '/matrix.txt'))
+            # 比较组之间绘图不进行
+
+            # 差异筛选
+            if L[comp] == 'ttest':
+                olog.write(
+                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}\n".format(bin, pn + '/' + comp, DEP, groupfile, fc,
+                                                                                 pvalue))
+                os.system(
+                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}".format(bin, pn + '/' + comp, DEP, groupfile, fc,
+                                                                               pvalue))
+            elif L[comp] == 'pairedttest':
+                olog.write(
+                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE\n".format(bin, pn + '/' + comp, DEP,
+                                                                                      groupfile, fc, pvalue))
+                os.system(
+                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE".format(bin, pn + '/' + comp,
+                                                                                    DEP, groupfile, fc, pvalue))
+
+            # 合并数据
+            olog.write("Rscript {}/mergeTablePTM.R {}/DEP.txt {} {}/DEP.xls\n".format(bin, DEP, infile, DEP))
+            os.system("Rscript {}/mergeTablePTM.R {}/DEP.txt {} {}/DEP.xls".format(bin, DEP, infile, DEP))
+
+            olog.write("Rscript {}/mergeTablePTM.R {}/ttest.txt {} {}/AllTest.xls\n".format(bin, DEP, infile, DEP))
+            os.system("Rscript {}/mergeTablePTM.R {}/ttest.txt {} {}/AllTest.xls".format(bin, DEP, infile, DEP))
+
+            olog.write("Rscript {}/mergeTablePTM.R {}/Down.txt {} {}/Down.xls\n".format(bin, DEP, infile, DEP))
+            os.system("Rscript {}/mergeTablePTM.R {}/Down.txt {} {}/Down.xls".format(bin, DEP, infile, DEP))
+
+            olog.write("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls\n".format(bin, DEP, infile, DEP))
+            os.system("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls".format(bin, DEP, infile, DEP))
+
+            # # 提取Summary
+            #
+            # olog.write(
+            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all.summamry.xlsx\n".format(bin, DEP, pn,
+            #                                                                                              DEP))
+            # os.system(
+            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all_summary.xlsx".format(bin, DEP, pn,
+            #                                                                                           DEP))
+            #
+            # olog.write(
+            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx\n".format(bin, DEP, pn,
+            #                                                                                           DEP))
+            # os.system(
+            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx".format(bin, DEP, pn,
+            #                                                                                         DEP))
+            #
+            # olog.write(
+            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx\n".format(bin, DEP, pn,
+            #                                                                                               DEP))
+            # os.system(
+            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx".format(bin, DEP, pn,
+            #                                                                                             DEP))
+
+            # 差异绘图，火山图，差异蛋白统计图
+            olog.write("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}\n".format(bin, DEP, fc, pvalue, DEP))
+            os.system("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}".format(bin, DEP, fc, pvalue, DEP))
+
+            # 热图绘制
+            olog.write("Rscript {}/drawHeatmap.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
+            os.system("Rscript {}/drawHeatmap.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
+
+            # 差异比较绘图
+            olog.write("Rscript {}/dDEP.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
+            os.system("Rscript {}/dDEP.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
+
+
 
 
 """获取当前程序所在的目录"""
@@ -381,6 +475,9 @@ if __name__ == '__main__':
     olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
     os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
 
+    print("### Get All Motif Sequence ###")
+    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
+
     #######运行参数解析
     olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
     os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
@@ -423,15 +520,21 @@ if __name__ == '__main__':
         print("有可能是物种参数设置错误，无法分析")
         sys.exit()
 
+    #######每一组的差异筛选#######
+    print("### Run DEP Selection ###")
+    L = get_comparison(p.pn + '/comparison.txt')
+    print('L:' + L + '\n')
+    #######各组差异统计分析
+    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+
     #######全部Motif分析(ProbALL)
     of = p.pn + '/MotifAnalysis'
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(of+'/All_MotifInput.txt'):
         codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
-        subprocess.run("sudo docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
+        subprocess.run("echo \"welovebp1188\" |sudo -S docker run  --rm -it -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
                        .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
-
     else:
         print("未检测到Motif分析输入文件！")
         sys.exit()

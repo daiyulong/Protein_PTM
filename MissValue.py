@@ -3,22 +3,16 @@ import pandas as pd
 import numpy as np
 from sklearn.impute import KNNImputer
 
-
 os.chdir(r"E:\projectResearch\02磷酸化蛋白组学流程")
 df = pd.read_excel('demo_sites.xlsx')
 gdf = pd.read_excel('demo_parameter.xlsx',sheet_name='Sheet1')
-#comdf = pd.read_excel('parameter.xlsx',sheet_name='Sheet2')
 
-samples = ["PTM.CollapseKey"] + gdf.loc[:,'Sample'].tolist()
+samples = ["PTM.CollapseKey"] + gdf.loc[:, 'Sample'].tolist()
 print(samples)
-#print(df.columns)
-dfsub = df.loc[:,samples]
+dfsub = df.loc[:, samples]
 dfsub.set_index('PTM.CollapseKey')
 
-#dflast.to_excel("SiteLast.xlsx",sep="\t",index=False)
-
-
-# 将样本分组文件转换为字典形式
+### 将样本分组文件转换为dict
 d_group = {}
 for i in range(len(gdf)):
     samp = gdf.iloc[i,0]
@@ -31,7 +25,8 @@ print(d_group)
 df_data_copy = dfsub.copy(deep=True)
 df_data_copy = df_data_copy.replace('Filtered', np.NaN)
 
-
+"""缺失值过滤"""
+### 所有组内样本缺失值大于50%的物质滤除
 def Confidence(df=None, d_group=None, confidence=0.5,how="outer",):
     """
     函数接收一个数据框和分组，实现自定义分组过滤,
@@ -61,7 +56,7 @@ def Confidence(df=None, d_group=None, confidence=0.5,how="outer",):
         df_ = df.loc[union,:]
 
     df_filter = df.loc[[x for x in df.index if x not in df_.index],:]
-    df_filter.to_csv("filter.csv",index=0)
+    df_filter.to_csv("missValue_filter.csv",index=0)
     return df_
 
 

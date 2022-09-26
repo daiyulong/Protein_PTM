@@ -61,7 +61,7 @@ dat_merge <- dat_merge[,-grep("no",colnames(dat_merge))]
 dat_merge <- dat_merge[,c(2:6,1,7:ncol(dat_merge))]
 #缺失值过滤并进行knn填充后的完整数据（filter NA + KNN imputation）
 write.xlsx(dat_merge,paste0(pn,"/1.Info/AllSites_KnnImputation.xlsx"),overwrite = TRUE)
-write.table(dat_merge[,c("PTM.CollapseKey",dg[[1]])],paste0(pn,"/1.Info/SampAnalysis_Input.txt"),
+write.table(dat_merge[,c("PTM.CollapseKey",dg[[1]])],paste0(pn,"/1.Info/matrix.txt"),
             sep = "\t",quote = F,row.names = F)
 
 # 生成可信位点表和可信位点对应的蛋白表 
