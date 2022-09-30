@@ -12,25 +12,23 @@ import pandas as pd
 import numpy as np
 import subprocess
 from sklearn.impute import KNNImputer
-# import check
 import wfmo
 
 
-### MissValue Analysis
+"""MissValue Analysis"""
 def miss_value_handling(input1,para,pn):
     of = pn + "/1.Info"
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(input1):
-        df = pd.read_excel(input1) # sites.xlsx
-        gdf = pd.read_excel(para, sheet_name='Sheet1') # parameter.xlsx
-
+        df = pd.read_excel(input1)
+        gdf = pd.read_excel(para, sheet_name='Sheet1')
         samples = ["PTM.CollapseKey"] + gdf.loc[:, 'Sample'].tolist()
         print(samples)
         dfsub = df.loc[:, samples]
         dfsub.set_index('PTM.CollapseKey')
 
-        # 将样本分组文件转换为dict
+        # 通过parameter.xlsx获得样本及分组信息
         d_group = {}
         for i in range(len(gdf)):
             samp = gdf.iloc[i, 0]
@@ -44,13 +42,7 @@ def miss_value_handling(input1,para,pn):
         df_data_copy = df_data_copy.replace('Filtered', np.NaN)
 
         def Confidence(df=None, d_group=None, confidence=0.5, how="outer", ):
-            """
-            函数接收一个数据框和分组，实现自定义分组过滤,
-            当confidence=0.5 时， how='outer',表示但凡有一组满足confidence时保留，所有组均不满足confidence时过滤掉。
-            当confidence=0.5 时， how='inner',表示需所有组满足confidence时保留，但凡有一组满足不满足confidence时过滤掉
-            :param df: 需要处理的数据框
-            :param d_group: 数据框中的样本分组设置
-            """
+            """函数接收一个数据框和分组，实现自定义分组过滤"""
             d_set = set()
             l_list = []
             for i in d_group:
@@ -58,7 +50,6 @@ def miss_value_handling(input1,para,pn):
                 n = dx.shape[1] * confidence
                 #print(n)
                 ind = dx[dx.isna().sum(axis=1) < dx.shape[1] - n].index
-
                 [d_set.add(i) for i in ind]
                 l_list.append(list(ind))
 
@@ -78,7 +69,6 @@ def miss_value_handling(input1,para,pn):
         df2 = Confidence(df=df_data_copy, d_group=d_group, confidence=0.5, how='outer')
         df2.to_excel(of + "/missValue_clean.xlsx", index=None)
 
-        # ???? 参数控制：KNN填充，最小值填充，均值填充等等
         ## KNN method imputer
         imputer = KNNImputer(n_neighbors=10)
         df2.iloc[:, 1:] = imputer.fit_transform(df2.iloc[:, 1:])
@@ -87,15 +77,13 @@ def miss_value_handling(input1,para,pn):
         df2.to_excel(of + "/missValue_imputation.xlsx", index=None)
 
 
-# Sample Analysis
+"""Sample Analysis"""
 def run_sample_analysis(groupFile, scaleMethod, col, pn, bin, olog, delmin, exp='DIA'):
     of = pn + "/2.SampleAnalysis"
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(groupFile):
-        # # 抽提数据
-        # olog.write("Rscript {0}/extractTable.R {1} {2}\n".format(bin, input, of + "/matrix.txt"))
-        # os.system("Rscript {0}/extractTable.R {1} {2}".format(bin, input, of + "/matrix.txt"))
+
         # 探索性绘图
         print("### Run matrix drawing ###")
         olog.write(
@@ -108,7 +96,7 @@ def run_sample_analysis(groupFile, scaleMethod, col, pn, bin, olog, delmin, exp=
         olog.write("Rscript {}/svdiPCA2.R {} {} {} uv\n".format(bin, pn + "/1.Info/matrix.txt", groupFile, of))
         os.system("Rscript {}/svdiPCA2.R {} {} {} uv".format(bin, pn + "/1.Info/matrix.txt", groupFile, of))
 
-
+"""获得比较组信息"""
 def get_comparison(infile):
     ifile = open(infile)
     L = dict()
@@ -126,7 +114,6 @@ def get_group_numb(groupfile):
     for line in ifile.readlines()[1:]:
         row = line.rstrip().split('\t')
         L.append(row[1])
-
     return (len(set(L)))
 
 """获取所有可信位点的motif序列"""
@@ -143,8 +130,6 @@ def get_all_motif_seq(probfile, pn):
         dfID = dfsub.iloc[0:, -1:]
         dfID.to_csv(of + "/All_MotifInput.txt", sep="\t", index=False, header=False)
 
-
-
 """全部蛋白的分析"""
 def run_all_protein_analysis(bin, pn, org, celllocation):
 
@@ -153,23 +138,15 @@ def run_all_protein_analysis(bin, pn, org, celllocation):
 
     ########细胞定位的分析的绘图
     if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
-        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt',
-                                                             pn + '/AllProtein/GO_subcellular_localization', celllocation))
-        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt',
-                                                          pn + '/AllProtein/GO_subcellular_localization', celllocation))
+        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt', pn + '/AllProtein/GO_subcellular_localization', celllocation))
+        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/AllProtein/GOEnrich_Species/CC.txt', pn + '/AllProtein/GO_subcellular_localization', celllocation))
 
     #####增加KEGG分类信息
-    olog.write(
-        "{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls\n".format(bin,pn, pn))
-    os.system(
-        "{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls".format(bin, pn,pn))
+    olog.write("{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls\n".format(bin,pn, pn))
+    os.system("{}/addURLClassKEGG {}/AllProtein/KEGG/KEGG.enriched.txt {}/AllProtein/KEGG/KEGG.enriched.xls".format(bin, pn,pn))
 
-    olog.write(
-        "Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx\n".format(
-            bin, pn, pn))
-    os.system(
-        "Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx".format(
-            bin, pn, pn))
+    olog.write("Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx\n".format(bin, pn, pn))
+    os.system("Rscript {}/txt2xlsx.R {}/AllProtein/KEGG/KEGG.enriched.xls KEGG {}/AllProtein/KEGG/KEGG.enriched.xlsx".format(bin, pn, pn))
 
     #####所有蛋白结果的绘图
     olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, pn + '/AllProtein'))
@@ -187,60 +164,42 @@ def run_all_protein_analysis(bin, pn, org, celllocation):
     os.system("Rscript {}/tsv2xlsx.R {} {} {}".format(bin, pn + '/protein_summary.txt', 'summary', pn + '/summary.xlsx'))
 
 
-## 未仔细修改
+## ????
 """多组之间比较的方差分析"""
 def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file, grouporder):
     olog.write("Rscript {}/extractTable.R {} {}\n".format(bin, input_file, pn + '/1.Info/matrix.txt'))
     os.system("Rscript {}/extractTable.R {} {}".format(bin, input_file, pn + '/1.Info/matrix.txt'))
 
-    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/1.Info/matrix.txt',
-                                                           pn + '/kmeans', grouporder))
-    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/1.Info/matrix.txt',
-                                                        pn + '/kmeans', grouporder))
+    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/1.Info/matrix.txt', pn + '/kmeans', grouporder))
+    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/1.Info/matrix.txt', pn + '/kmeans', grouporder))
 
     # 挑选做比较绘图的文件
-    olog.write("Rscript {}/selectFileFromTotal.R {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx',
-                                                                    pn + '/input.txt', pn + '/ANOVA.sig.txt'))
-    os.system("Rscript {}/selectFileFromTotal.R {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx',
-                                                                 pn + '/input.txt', pn + '/ANOVA.sig.txt'))
+    olog.write("Rscript {}/selectFileFromTotal.R {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
+    os.system("Rscript {}/selectFileFromTotal.R {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
 
     # 比较绘图
-    olog.write("Rscript {}/dDEP4multi.R {} {} {}\n".format(bin, pn + '/ANOVA.sig.txt', input_group_file,
-                                                           pn + '/Multi_group_expression'))
-    os.system("Rscript {}/dDEP4multi.R {} {} {}".format(bin, pn + '/ANOVA.sig.txt', input_group_file,
-                                                        pn + '/Multi_group_expression'))
+    olog.write("Rscript {}/dDEP4multi.R {} {} {}\n".format(bin, pn + '/ANOVA.sig.txt', input_group_file, pn + '/Multi_group_expression'))
+    os.system("Rscript {}/dDEP4multi.R {} {} {}".format(bin, pn + '/ANOVA.sig.txt', input_group_file, pn + '/Multi_group_expression'))
 
     #热图绘制
     olog.write("Rscript {}/drawHeatmap.R {} {} {} multi\n".format(bin, pn + '/ANOVA.sig.txt',input_group_file, pn))
     os.system("Rscript {}/drawHeatmap.R {} {} {} multi".format(bin, pn + '/ANOVA.sig.txt',input_group_file, pn))
 
     # 显著的蛋白的功能分析和绘图
-    olog.write(
-        "Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4\n".format(bin, pn + '/ANOVA.sig.txt', pn,
-                                                                         org, bin, input_file))
-    os.system(
-        "Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4".format(bin, pn + '/ANOVA.sig.txt', pn,
-                                                                       org, bin, input_file))
+    olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4\n".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin, input_file))
+    os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin, input_file))
 
     ########细胞定位的分析的绘图
     if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
-        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/GOEnrich_Species/CC.txt',
-                                                             pn + '/GO_subcellular_localization', celllocation))
-        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/GOEnrich_Species/CC.txt',
-                                                          pn + '/GO_subcellular_localization', celllocation))
+        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
+        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
 
     #####增加KEGG分类信息
-    olog.write(
-        "{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, pn, pn))
-    os.system(
-        "{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls".format(bin, pn, pn))
+    olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, pn, pn))
+    os.system("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls".format(bin, pn, pn))
 
-    olog.write(
-        "Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(
-            bin, pn, pn))
-    os.system(
-        "Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx".format(
-            bin, pn, pn))
+    olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, pn, pn))
+    os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, pn, pn))
 
     #####结果的绘图
     olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, pn))
@@ -253,13 +212,11 @@ def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file,
     else:
         return 0
 
-
 def get_python():
     if platform.system()=='Windows':
         return ("python")
     else:
         return("python3")
-
 
 """差异Motif分析"""
 def get_DEP_motif(L,pn):
@@ -322,7 +279,7 @@ def get_DEP_protein_id(L,pn):
         DEPfile = pn + "/input.txt"
         if os.path.exists(infile) and os.path.exists(DEPfile):
             olog.write("Rscript {}/getDEPprotein.R {} {}\n".format(bin, comp, pn))
-            os.system("Rscript {}/getDEPprotein.R{} {}".format(bin, comp, pn))
+            os.system("Rscript {}/getDEPprotein.R {} {}".format(bin, comp, pn))
 
 """差异位点的筛选"""
 def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
@@ -338,19 +295,11 @@ def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
 
             # 差异筛选
             if L[comp] == 'ttest':
-                olog.write(
-                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}\n".format(bin, pn + '/' + comp, DEP, groupfile, fc,
-                                                                                 pvalue))
-                os.system(
-                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}".format(bin, pn + '/' + comp, DEP, groupfile, fc,
-                                                                               pvalue))
+                olog.write("Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}\n".format(bin, pn + '/' + comp, DEP, groupfile, fc, pvalue))
+                os.system("Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {}".format(bin, pn + '/' + comp, DEP, groupfile, fc, pvalue))
             elif L[comp] == 'pairedttest':
-                olog.write(
-                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE\n".format(bin, pn + '/' + comp, DEP,
-                                                                                      groupfile, fc, pvalue))
-                os.system(
-                    "Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE".format(bin, pn + '/' + comp,
-                                                                                    DEP, groupfile, fc, pvalue))
+                olog.write("Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE\n".format(bin, pn + '/' + comp, DEP, groupfile, fc, pvalue))
+                os.system("Rscript {}/Ttest.R {}/matrix.txt {} {} none {} {} TRUE".format(bin, pn + '/' + comp, DEP, groupfile, fc, pvalue))
 
             # 合并数据
             olog.write("Rscript {}/mergeTablePTM.R {}/DEP.txt {} {}/DEP.xls\n".format(bin, DEP, infile, DEP))
@@ -364,22 +313,6 @@ def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
 
             olog.write("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls\n".format(bin, DEP, infile, DEP))
             os.system("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls".format(bin, DEP, infile, DEP))
-
-            # # 提取Summary
-            # olog.write(
-            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all.summamry.xlsx\n".format(bin, DEP, pn, DEP))
-            # os.system(
-            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all_summary.xlsx".format(bin, DEP, pn, DEP))
-            #
-            # olog.write(
-            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx\n".format(bin, DEP, pn, DEP))
-            # os.system(
-            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx".format(bin, DEP, pn, DEP))
-            #
-            # olog.write(
-            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx\n".format(bin, DEP, pn, DEP))
-            # os.system(
-            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx".format(bin, DEP, pn, DEP))
 
             # 差异绘图，火山图，差异蛋白统计图
             olog.write("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}\n".format(bin, DEP, fc, pvalue, DEP))
@@ -564,71 +497,160 @@ def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
 
 
                 script_dir = os.path.normpath(bin + '/Network')
-                network_dir = os.path.normpath(of + '/Network')
-                if not os.path.exists(network_dir):
-                    os.makedirs(network_dir)
-
                 model_network_dir = os.path.normpath(script_dir + '/model')
+                network_dir = os.path.normpath(of + '/Network')
+                unetwork_dir = os.path.normpath(ofu + '/Network')
+                dnetwork_dir = os.path.normpath(ofd + '/Network')
+                if not os.path.exists(network_dir) or not os.path.exists(unetwork_dir) or not os.path.exists(dnetwork_dir):
+                    os.makedirs(network_dir)
+                    os.makedirs(unetwork_dir)
+                    os.makedirs(dnetwork_dir)
+
                 # 有Fold Change的情况
-                if os.path.exists("{}/KEGG/KEGG.enriched.addFC.txt".format(of)):
-                    script_dir = os.path.normpath(bin + '/Network')
-                    model_network_dir = os.path.normpath(script_dir + '/model')
-                    network_dir = os.path.normpath(of + '/Network')
+                if os.path.exists("{}/KEGG/KEGG.enriched.addFC.txt".format(of)) and os.path.exists("{}/KEGG/KEGG.enriched.addFC.txt".format(ofu)) and os.path.exists(
+                        "{}/KEGG/KEGG.enriched.addFC.txt".format(ofd)):
+
+                    # DEP
                     os.system("{0} {1}/code_2.py -in {2}/KEGG/KEGG.enriched.addFC.txt -od {3}".format(wfmo.get_python(),script_dir, of,network_dir))
                     olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, network_dir))
                     os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, network_dir))
+                    # UP
+                    os.system("{0} {1}/code_2.py -in {2}/KEGG/KEGG.enriched.addFC.txt -od {3}".format(wfmo.get_python(),script_dir, ofu,unetwork_dir))
+                    olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, unetwork_dir))
+                    os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, unetwork_dir))
+                    # Down
+                    os.system("{0} {1}/code_2.py -in {2}/KEGG/KEGG.enriched.addFC.txt -od {3}".format(wfmo.get_python(),script_dir, ofd,dnetwork_dir))
+                    olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, dnetwork_dir))
+                    os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, dnetwork_dir))
 
-                    if os.path.exists('{}/node_edge/pathway-pathway_node.txt'.format(network_dir)):
-                        olog.write(
-                            "{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(),script_dir,model_network_dir,network_dir))
-                        os.system(
-                            "{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
+                    if os.path.exists('{}/node_edge/pathway-pathway_node.txt'.format(network_dir)) and os.path.exists('{}/node_edge/pathway-pathway_node.txt'.format(unetwork_dir)) and os.path.exists(
+                            '{}/node_edge/pathway-pathway_node.txt'.format(unetwork_dir)):
+                        # DEP
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(),script_dir,model_network_dir,network_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
+                        # UP
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(),script_dir,model_network_dir,unetwork_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, unetwork_dir))
+                        # Down
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(),script_dir,model_network_dir,dnetwork_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir))
 
+                    #DEP
                     if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
-                        olog.write(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
                                 script_dir=script_dir, network_dir=network_dir))
-                        os.system(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
                                 script_dir=script_dir, network_dir=network_dir))
-                        olog.write(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
-                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                        os.system(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=network_dir))
 
-                        olog.write(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
                                 script_dir=script_dir, network_dir=network_dir))
-                        os.system(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
                                 script_dir=script_dir, network_dir=network_dir))
 
-                        olog.write(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                        os.system(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=network_dir))
+                    #UP
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofu)) > 0:
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=unetwork_dir))
+
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=unetwork_dir))
+                    #Down
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofd)) > 0:
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir,model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+
                     # 转换输入文件格式
                     olog.write("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt\n".format(bin, of, of))
                     os.system("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt".format(bin, of, of))
+                    olog.write("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt\n".format(bin, ofu, ofu))
+                    os.system("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt".format(bin, ofu, ofu))
+                    olog.write("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt\n".format(bin, ofd, ofd))
+                    os.system("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt".format(bin, ofd, ofd))
 
-                    olog.write(
-                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all\n".format(
+                    # DEP
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all\n".format(
                             script_dir=script_dir, network_dir=network_dir, ifold=of))
-                    os.system(
-                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all".format(
+                    os.system("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all".format(
                             script_dir=script_dir, network_dir=network_dir, ifold=of))
 
-                    olog.write(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
-                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                    os.system(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
-                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
+                    os.system("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
 
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
+                    os.system("Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
+
+                    #DEP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+
+                    #DEP
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    #UP
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    #Down
                     olog.write(
                         "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part\n".format(
                             python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
@@ -636,26 +658,53 @@ def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
                         "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part".format(
                             python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
 
-                    olog.write(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                    #DEP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
                             python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                    os.system(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
                             python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
 
-                    os.system(
-                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                    #DEP
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
                             script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
+                    #UP
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=ofu, network_dir=unetwork_dir, symbol_idx=1, fc_idx=2))
+                    #Down
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=ofd, network_dir=dnetwork_dir, symbol_idx=1, fc_idx=2))
 
-                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt"):
-                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (
-                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
-                    print("\nNetwork plot done!")
+
+                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt") and os.path.exists(unetwork_dir + "/node_edge/ppi_edge.txt") and os.path.exists(
+                            dnetwork_dir + "/node_edge/ppi_edge.txt"):
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, unetwork_dir, unetwork_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir, dnetwork_dir))
+                    print("\nNetwork plot done!\n")
 
                 # 无fold change
-                elif os.path.exists("{}/KEGG/KEGG.enriched.txt".format(of)):
+                elif os.path.exists("{}/KEGG/KEGG.enriched.txt".format(of)) and os.path.exists("{}/KEGG/KEGG.enriched.txt".format(ofu)) and os.path.exists(
+                        "{}/KEGG/KEGG.enriched.txt".format(ofd)):
                     olog.write("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}\n".format(wfmo.get_python(), bin, of, network_dir))
                     os.system("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}".format(wfmo.get_python(), bin, of, network_dir))
+
+                    olog.write("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}\n".format(wfmo.get_python(), bin, ofu, unetwork_dir))
+                    os.system("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}".format(wfmo.get_python(), bin, ofu, unetwork_dir))
+
+                    olog.write("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}\n".format(wfmo.get_python(), bin, ofd, dnetwork_dir))
+                    os.system("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}".format(wfmo.get_python(), bin, ofd, dnetwork_dir))
+
+                    #DEP
                     if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
                         olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, network_dir))
                         os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, network_dir))
@@ -663,87 +712,226 @@ def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
                         olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
                         os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
 
-                        olog.write(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
                                 script_dir=script_dir, network_dir=network_dir))
-                        os.system(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
                                 script_dir=script_dir, network_dir=network_dir))
 
-                        olog.write(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                        os.system(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofu)) > 0:
+                        olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, unetwork_dir))
+                        os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, unetwork_dir))
 
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(), script_dir, model_network_dir, unetwork_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, unetwork_dir))
+
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofd)) > 0:
+                        olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, dnetwork_dir))
+                        os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, dnetwork_dir))
+
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir))
+
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+
+                    #DEP
                     if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
-                        olog.write(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
                                 script_dir=script_dir, network_dir=network_dir))
-                        os.system(
-                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
                                 script_dir=script_dir, network_dir=network_dir))
 
-                        olog.write(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                        os.system(
-                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
                                 python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofu)) > 0:
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=unetwork_dir))
 
-                    olog.write(
-                        "Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all\n".format(
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(ofd)) > 0:
+                        olog.write("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+                        os.system("Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=dnetwork_dir))
+
+                        olog.write("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                        os.system("{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+
+                    #DEP
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all\n".format(
                             script_dir=script_dir, network_dir=network_dir, ifold=of))
-                    os.system(
-                        "Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all".format(
+                    os.system("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all".format(
                             script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    #UP
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
+                    os.system("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
+                    #Down
+                    olog.write("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
+                    os.system("Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
 
-                    olog.write(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                    #DEP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
                             python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
-                    os.system(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
                             python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
 
+                    #DEP
                     olog.write(
                         "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part\n".format(
                             python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
                     os.system(
                         "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part".format(
                             python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
-
+                    #UP
                     olog.write(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
-                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
                     os.system(
-                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=unetwork_dir, ifold=ofu))
+                    #Down
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=dnetwork_dir, ifold=ofd))
+
+                    #DEP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
                             python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    #UP
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=unetwork_dir))
+                    #Down
+                    olog.write("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
+                    os.system("{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=dnetwork_dir))
 
                     # 需要构造一个FC信息的文件
                     construct_fc_file("{}/Input/Transformed_input.txt".format(of), "{}/Input/Network_input.txt".format(of))
+                    construct_fc_file("{}/Input/Transformed_input.txt".format(ofu), "{}/Input/Network_input.txt".format(ofu))
+                    construct_fc_file("{}/Input/Transformed_input.txt".format(ofd), "{}/Input/Network_input.txt".format(ofd))
 
-                    olog.write(
-                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}\n".format(
+                    #DEP
+                    olog.write("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}\n".format(
                             script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
-                    os.system(
-                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
                             script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
+                    #UP
+                    olog.write("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}\n".format(
+                            script_dir=script_dir, ifold=ofu, network_dir=unetwork_dir, symbol_idx=1, fc_idx=2))
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=ofu, network_dir=unetwork_dir, symbol_idx=1, fc_idx=2))
+                    #Down
+                    olog.write("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}\n".format(
+                            script_dir=script_dir, ifold=ofd, network_dir=dnetwork_dir, symbol_idx=1, fc_idx=2))
+                    os.system("Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=ofd, network_dir=dnetwork_dir, symbol_idx=1, fc_idx=2))
 
-                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt"):
-                        olog.write('%s %s/ppi.py -model %s -net %s -edge_node %s\n' % (
-                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
-                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (
-                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt") and os.path.exists(unetwork_dir + "/node_edge/ppi_edge.txt") and os.path.exists(
+                            dnetwork_dir + "/node_edge/ppi_edge.txt"):
+                        olog.write('%s %s/ppi.py -model %s -net %s -edge_node %s\n' % (wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                        #UP
+                        olog.write('%s %s/ppi.py -model %s -net %s -edge_node %s\n' % (wfmo.get_python(), script_dir, model_network_dir, unetwork_dir, unetwork_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, unetwork_dir, unetwork_dir))
+                        #Down
+                        olog.write('%s %s/ppi.py -model %s -net %s -edge_node %s\n' % (wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir, dnetwork_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (wfmo.get_python(), script_dir, model_network_dir, dnetwork_dir, dnetwork_dir))
 
 
 
+"""多组比较数据整合绘制柱状图"""
+def merge_updown_bar(L, pn, bin, olog):
+    if len(L) > 0:
+        pass
+        s = ''
+        for comp in L:
+            s = s + ' ' + pn + '/' + comp + '/DESelection/updown.stat.txt ' + comp
+        # print("Rscript {}/mergeUpdownStat.R {} {}".format(bin, pn, s))
+        olog.write("Rscript {}/mergeUpdownStat.R {} {}\n".format(bin, pn, s))
+        os.system("Rscript {}/mergeUpdownStat.R {} {}".format(bin, pn, s))
 
+        if os.path.exists(pn + '/multiUpdown.stat.txt'):
+            olog.write("Rscript {}/dUpdownbar.R {}/multiUpdown.stat.txt {}\n".format(bin, pn, pn))
+            os.system("Rscript {}/dUpdownbar.R {}/multiUpdown.stat.txt {}".format(bin, pn, pn))
+"""维恩图"""
+def venn_anal(L, pn, bin, olog):
 
+    if len(L) > 1 and len(L) <= 5:
+        L = sorted(L)
+        s = ''
+        sup = ''
+        sdown = ''
+        for comp in L:
+            s = s + ' ' + pn + '/' + comp + '/DESelection/DEP.xls'
+            sup = sup + ' ' + pn + '/' + comp + '/DESelection/Up.xls'
+            sdown = sdown + ' ' + pn + '/' + comp + '/DESelection/Down.xls'
 
+        if not os.path.exists(pn + '/Venn'):
+            os.makedirs(pn + '/Venn')
 
+        olog.write("Rscript {}/dVenn.R {} {} \"{}\"\n".format(bin, s, pn + '/Venn/all', ';'.join(L)))
+        os.system("Rscript {}/dVenn.R {} {} \"{}\"".format(bin, s, pn + '/Venn/all', ';'.join(L)))
 
+        olog.write("Rscript {}/dVenn.R {} {} \"{}\"\n".format(bin, sup, pn + '/Venn/up', ';'.join(L)))
+        os.system("Rscript {}/dVenn.R {} {} \"{}\"".format(bin, sup, pn + '/Venn/up', ';'.join(L)))
 
+        olog.write("Rscript {}/dVenn.R {} {} \"{}\"\n".format(bin, sdown, pn + '/Venn/down', ';'.join(L)))
+        os.system("Rscript {}/dVenn.R {} {} \"{}\"".format(bin, sdown, pn + '/Venn/down', ';'.join(L)))
 
 
 def count_enrich_path(infile, pvalue_idx=4, pvalue_cutoff=0.05):
@@ -774,11 +962,6 @@ def construct_fc_file(infile, outfile):
         print("找不到输入文件")
 
 
-
-
-
-
-
 """转换ID"""
 def convert_identifier(infile, org, type, pn, bin, olog):
     olog.write("Rscript {}/convert_identifier.R {} {} {} {}\n".format(bin, infile, pn, org, type))
@@ -802,10 +985,6 @@ def renamefile(file, tofile):
         shutil.copyfile(file, tofile)
     else:
         print("Cannot find {}".format(file))
-
-
-
-
 
 
 """获取当前程序所在的目录"""
@@ -848,9 +1027,7 @@ if __name__ == '__main__':
 
    # parser.add_argument('-i', action='store', dest='input', default='', help='input file')
     parser.add_argument('-ibg', action='store', dest='ibg', default='none', help='background.input file')
-  #  parser.add_argument('-o', action='store', dest='pn', default='', help='Project ID as output fold')
-    parser.add_argument('-type', action='store', dest='type', default='symbol',
-                        help='convert type: symbol, accsymbol,accsymbolfc, accession')
+    parser.add_argument('-type', action='store', dest='type', default='symbol', help='convert type: symbol, accsymbol,accsymbolfc, accession')
 
 
     supp = ['hsa', 'rno', 'mmu', 'ssc', 'gga', 'bta', 'cel', 'ath', 'dre', 'dme', 'sce']
@@ -875,12 +1052,6 @@ if __name__ == '__main__':
 
     bin = get_bin()
 
-    """
-    if platform.system() == 'Windows':
-        bin = get_absdir()
-    else:
-        bin = '/usr/local/bio/PAA/bin'
-    """
     # taxid = int(p.taxid)
     # if p.org in code2taxid:
     #     taxid = code2taxid[p.org]
@@ -929,90 +1100,90 @@ if __name__ == '__main__':
     #                                                            p.reporttype))
     #     exit()
 
+    # paralog = open(p.pn+'/parameter.txt', 'w')
+    # paralog.write("{}\n".format(' '.join(sys.argv)))
+    # paralog.write('FC\t{}\n'.format(p.fc))
+    # paralog.write('pvalue\t{}\n'.format(p.pvalue))
+    # paralog.write('org\t{}\n'.format(p.org))
+    # paralog.write('celllocation\t{}\n'.format(p.celllocation))
+    # paralog.write('taxid\t{}\n'.format(taxid))
+    # paralog.close()
 
-    paralog = open(p.pn+'/parameter.txt', 'w')
-    paralog.write("{}\n".format(' '.join(sys.argv)))
-    paralog.write('FC\t{}\n'.format(p.fc))
-    paralog.write('pvalue\t{}\n'.format(p.pvalue))
-    paralog.write('org\t{}\n'.format(p.org))
-    paralog.write('celllocation\t{}\n'.format(p.celllocation))
-    paralog.write('taxid\t{}\n'.format(taxid))
-    paralog.close()
 
-    # print("### Miss Value Handling ###")
-    # miss_value_handling(p.pef, p.info, p.pn)
-    #
-    # print("### Get Probability Files ###")
-    # olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
-    # os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
-    #
-    # print("### Get All Motif Sequence ###")
-    # get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
-    #
-    # #######运行参数解析
-    # olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-    # os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-    #
-    # #######提取输入文件
-    # olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-    # os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-    #
-    # #######运行整体绘图
-    # print("### Run Sample Analysis ###")
-    # del_min = ''
-    # if p.maskminvalue is False:
-    #     del_min = 'FALSE'
-    # else:
-    #     del_min = 'TRUE'
-    # run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
-    #
-    # #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
-    # #读取anova行
-    # groupNumb = get_group_numb(p.pn + '/groupFile.txt')
-    # ipara = open(p.pn+'/comparison.txt')
-    # for line in ipara.readlines()[1:]:
-    #     row = line.rstrip().split('\t')
-    #     row[0] = row[0].strip()
-    #     if row[0] == 'anova':
-    #         grouporder = row[1].replace(';',',')
-    #         row[1] = row[1].replace(';', '_')
-    #         anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
-    #         anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
-    #         # ANOVA检验
-    #         sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
-    #         ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
-    #         ianova.write("{}\t{}\n".format(row[1], sig_number))
-    #         ianova.close()
-    #
-    # #######全部蛋白分析#######
-    # print("### Run All Proteins Analysis ###")
-    # if p.org in supp and os.path.exists(p.pn+'/input.txt'):
-    #     run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
-    # else:
-    #     print("有可能是物种参数设置错误，无法分析")
-    #     sys.exit()
-    #
-    # #######全部Motif分析(ProbALL)#######
-    # print("### Run All Probability Motif Analysis ###")
-    # of = p.pn + '/MotifAnalysis'
-    # if not os.path.exists(of):
-    #     os.mkdir(of)
-    # if os.path.exists(of+'/All_MotifInput.txt'):
-    #     codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
-    #     subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
-    #                    .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
-    # else:
-    #     print("未检测到Motif分析输入文件！")
-    #     sys.exit()
+
+    print("### Miss Value Handling ###")
+    miss_value_handling(p.pef, p.info, p.pn)
+
+    print("### Get Probability Files ###")
+    olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
+    os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
+
+    print("### Get All Motif Sequence ###")
+    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
+
+    #######运行参数解析
+    olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+    os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+
+    #######提取输入文件
+    olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+    os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+
+    #######运行整体绘图
+    print("### Run Sample Analysis ###")
+    del_min = ''
+    if p.maskminvalue is False:
+        del_min = 'FALSE'
+    else:
+        del_min = 'TRUE'
+    run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
+
+    #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
+    #读取anova行
+    groupNumb = get_group_numb(p.pn + '/groupFile.txt')
+    ipara = open(p.pn+'/comparison.txt')
+    for line in ipara.readlines()[1:]:
+        row = line.rstrip().split('\t')
+        row[0] = row[0].strip()
+        if row[0] == 'anova':
+            grouporder = row[1].replace(';',',')
+            row[1] = row[1].replace(';', '_')
+            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
+            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
+            # ANOVA检验
+            sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
+            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
+            ianova.write("{}\t{}\n".format(row[1], sig_number))
+            ianova.close()
+
+    #######全部蛋白分析#######
+    print("### Run All Proteins Analysis ###")
+    if p.org in supp and os.path.exists(p.pn+'/input.txt'):
+        run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
+    else:
+        print("有可能是物种参数设置错误，无法分析")
+        sys.exit()
+
+    #######全部Motif分析(ProbALL)#######
+    print("### Run All Probability Motif Analysis ###")
+    of = p.pn + '/MotifAnalysis'
+    if not os.path.exists(of):
+        os.mkdir(of)
+    if os.path.exists(of+'/All_MotifInput.txt'):
+        codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+        subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
+                       .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
+    else:
+        print("未检测到Motif分析输入文件！")
+        sys.exit()
 
 
     #######每一组的差异筛选#######
     print("### Run DEP Selection ###")
     L = get_comparison(p.pn + '/comparison.txt')
     print(L)
-
     # 各组差异统计分析
-#    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
 #    merge_dep_info(L, bin, p.pn, olog)
 
     #######差异Motif分析#######
@@ -1022,12 +1193,11 @@ if __name__ == '__main__':
 
     # 差异蛋白功能分析
     print("### Run DEP Functional Analysis ###")
-    get_DEP_protein_id(L,p.pn)
+    get_DEP_protein_id(L, p.pn)
 
-    #irun_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
+    run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
 
-    #
-    #
+
 
 
 
