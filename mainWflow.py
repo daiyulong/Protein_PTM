@@ -13,7 +13,7 @@ import numpy as np
 import subprocess
 from sklearn.impute import KNNImputer
 # import check
-# import wfmo
+import wfmo
 
 
 ### MissValue Analysis
@@ -97,7 +97,7 @@ def run_sample_analysis(groupFile, scaleMethod, col, pn, bin, olog, delmin, exp=
         # olog.write("Rscript {0}/extractTable.R {1} {2}\n".format(bin, input, of + "/matrix.txt"))
         # os.system("Rscript {0}/extractTable.R {1} {2}".format(bin, input, of + "/matrix.txt"))
         # 探索性绘图
-        print("### Run matrix drawing")
+        print("### Run matrix drawing ###")
         olog.write(
             "Rscript {0}/matrixDraw.R {1} {2} {3} {4} Intensity log2 {5}\n".format(
                 bin, pn + "/1.Info/matrix.txt", groupFile, of, col, delmin))
@@ -147,7 +147,7 @@ def get_all_motif_seq(probfile, pn):
 
 """全部蛋白的分析"""
 def run_all_protein_analysis(bin, pn, org, celllocation):
-    print("### Run All Proteins Analysis ###")
+
     olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4\n".format(bin, pn + '/input.txt', pn + '/AllProtein', org, bin))
     os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -c 4".format(bin, pn + '/input.txt', pn + '/AllProtein', org, bin))
 
@@ -261,8 +261,70 @@ def get_python():
         return("python3")
 
 
+"""差异Motif分析"""
+def get_DEP_motif(L,pn):
+    for comp in L:
+        print("\nRun " + comp)
+        infile = pn + "/MotifAnalysis/Motif_All.txt"
+        DEPfile = pn + '/' + comp + '/DESelection/DEP.txt'
+        if os.path.exists(infile) and os.path.exists(DEPfile):
+            '''提取DEP Motif分析的输入序列 '''
+            olog.write("Rscript {}/getDEPMotif.R {} {}\n".format(bin, comp, pn))
+            os.system("Rscript {}/getDEPMotif.R {} {}".format(bin, comp, pn))
 
-#差异蛋白的筛选
+            # DEP motif分析
+            of = p.pn + '/DEPMotif/' + comp
+            if not os.path.exists(of):
+                os.mkdir(of)
+
+            if not os.path.exists(of + '/All'):
+                os.mkdir(of + '/All')
+            if os.path.exists(of + '/DEPMotif_input.txt'):
+                codeContent = 'momo motifx -oc /meme/All --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+                subprocess.run(
+                    "echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/DEPMotif_input.txt"
+                    .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True,
+                    check=True)
+            else:
+                print("未检测到DEPMotif_input.txt输入文件！")
+                sys.exit()
+
+            # Up motif分析
+            if not os.path.exists(of + '/Up'):
+                os.mkdir(of + '/Up')
+            if os.path.exists(of + '/UpMotif_input.txt'):
+                codeContent = 'momo motifx -oc /meme/Up --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+                subprocess.run(
+                    "echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/UpMotif_input.txt"
+                    .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True,
+                    check=True)
+            else:
+                print("未检测到UpMotif_input.txt输入文件！")
+
+            # Down motif分析
+            if not os.path.exists(of + '/Down'):
+                os.mkdir(of + '/Down')
+            if os.path.exists(of + '/DownMotif_input.txt'):
+                codeContent = 'momo motifx -oc /meme/Down --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+                subprocess.run(
+                    "echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/DownMotif_input.txt"
+                        .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent),
+                    shell=True,
+                    check=True)
+            else:
+                print("未检测到DownMotif_input.txt输入文件！")
+
+"""差异蛋白list生成"""
+def get_DEP_protein_id(L,pn):
+    for comp in L:
+        print("\nRun " + comp)
+        infile = pn + "/1.Info/ModifiedProtein.xlsx"
+        DEPfile = pn + "/input.txt"
+        if os.path.exists(infile) and os.path.exists(DEPfile):
+            olog.write("Rscript {}/getDEPprotein.R {} {}\n".format(bin, comp, pn))
+            os.system("Rscript {}/getDEPprotein.R{} {}".format(bin, comp, pn))
+
+"""差异位点的筛选"""
 def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
     for comp in L:
         infile = pn + '/' + comp + "/input.txt"
@@ -304,39 +366,444 @@ def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
             os.system("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls".format(bin, DEP, infile, DEP))
 
             # # 提取Summary
+            # olog.write(
+            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all.summamry.xlsx\n".format(bin, DEP, pn, DEP))
+            # os.system(
+            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all_summary.xlsx".format(bin, DEP, pn, DEP))
             #
             # olog.write(
-            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all.summamry.xlsx\n".format(bin, DEP, pn,
-            #                                                                                              DEP))
+            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx\n".format(bin, DEP, pn, DEP))
             # os.system(
-            #     "Rscript {}/selectTSV.R {}/DEP.xls {}/protein_summary.txt {}/all_summary.xlsx".format(bin, DEP, pn,
-            #                                                                                           DEP))
+            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx".format(bin, DEP, pn, DEP))
             #
             # olog.write(
-            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx\n".format(bin, DEP, pn,
-            #                                                                                           DEP))
+            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx\n".format(bin, DEP, pn, DEP))
             # os.system(
-            #     "Rscript {}/selectTSV.R {}/Up.xls {}/protein_summary.txt {}/up_summary.xlsx".format(bin, DEP, pn,
-            #                                                                                         DEP))
-            #
-            # olog.write(
-            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx\n".format(bin, DEP, pn,
-            #                                                                                               DEP))
-            # os.system(
-            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx".format(bin, DEP, pn,
-            #                                                                                             DEP))
+            #     "Rscript {}/selectTSV.R {}/Down.xls {}/protein_summary.txt {}/down_summary.xlsx".format(bin, DEP, pn, DEP))
 
             # 差异绘图，火山图，差异蛋白统计图
             olog.write("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}\n".format(bin, DEP, fc, pvalue, DEP))
             os.system("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}".format(bin, DEP, fc, pvalue, DEP))
 
             # 热图绘制
-            olog.write("Rscript {}/drawHeatmap.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
-            os.system("Rscript {}/drawHeatmap.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
+            olog.write("Rscript {}/drawHeatmapPTM.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
+            os.system("Rscript {}/drawHeatmapPTM.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
 
             # 差异比较绘图
             olog.write("Rscript {}/dDEP.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
             os.system("Rscript {}/dDEP.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
+
+
+"""差异位点对应蛋白的功能分析"""
+def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
+    for comp in L:
+        DEP = pn + '/' + comp + '/DESelection'
+        # 功能分析
+        print("\nRun " + comp)
+        if org in supp:
+            of = pn + '/' + comp + "/all"
+            ofu = pn + '/' + comp + "/up"
+            ofd = pn + '/' + comp + "/down"
+            dir_list = [of, ofu, ofd]
+            for dir_ in dir_list:
+                if not os.path.exists(dir_):
+                    os.mkdir(dir_)
+            # DEP
+            olog.write("Rscript {}/convertID.R {}/DEPProtein.xls {} {} {}\n".format(bin, DEP, of + '/Input', org, p.type))
+            os.system("Rscript {}/convertID.R {}/DEPProtein.xls {} {} {}".format(bin, DEP, of + '/Input', org, p.type))
+            # Up
+            olog.write("Rscript {}/convertID.R {}/UpProtein.xls {} {} {}\n".format(bin, DEP, ofu + '/Input', org, p.type))
+            os.system("Rscript {}/convertID.R {}/UpProtein.xls {} {} {}".format(bin, DEP, ofu + '/Input', org, p.type))
+            # Down
+            olog.write("Rscript {}/convertID.R {}/DownProtein.xls {} {} {}\n".format(bin, DEP, ofd + '/Input', org, p.type))
+            os.system("Rscript {}/convertID.R {}/DownProtein.xls {} {} {}".format(bin, DEP, ofd + '/Input', org, p.type))
+
+            if not os.path.exists(of + '/Input/Transformed_input.txt'):
+                print("转换DEP ID出错")
+                sys.exit()
+            if not os.path.exists(ofu + '/Input/Transformed_input.txt'):
+                print("转换Up ID出错")
+                sys.exit()
+            if not os.path.exists(ofd + '/Input/Transformed_input.txt'):
+                print("转换Down ID出错")
+                sys.exit()
+
+            if (p.ibg == 'none'):
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, of + '/Input/Transformed_input.txt', org, bin, of))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, of + '/Input/Transformed_input.txt', org, bin, of))
+                # UP
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, of))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, of))
+                # Down
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, of))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, of))
+
+            else:
+                olog.write("Rscript {}/convertID.R {} {} {} {}\n".format(bin, p.ibg, of + '/BG', org, p.type))
+                os.system("Rscript {}/convertID.R {} {} {} {}".format(bin, p.ibg, of + '/BG', org, p.type))
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}\n".format(bin, of + '/Input/Transformed_input.txt',org, bin, of, of + '/BG/Transformed_input.txt'))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}".format(bin, of + '/Input/Transformed_input.txt',org, bin, of, of + '/BG/Transformed_input.txt'))
+                #UP
+                olog.write("Rscript {}/convertID.R {} {} {} {}\n".format(bin, p.ibg, ofu + '/BG', org, p.type))
+                os.system("Rscript {}/convertID.R {} {} {} {}".format(bin, p.ibg, ofu + '/BG', org, p.type))
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}\n".format(bin, ofu + '/Input/Transformed_input.txt',org, bin, ofu, ofu + '/BG/Transformed_input.txt'))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}".format(bin, ofu + '/Input/Transformed_input.txt',org, bin, ofu, ofu + '/BG/Transformed_input.txt'))
+                #Down
+                olog.write("Rscript {}/convertID.R {} {} {} {}\n".format(bin, p.ibg, ofd + '/BG', org, p.type))
+                os.system("Rscript {}/convertID.R {} {} {} {}".format(bin, p.ibg, ofd + '/BG', org, p.type))
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}\n".format(bin, ofd + '/Input/Transformed_input.txt',org, bin, ofd, ofd + '/BG/Transformed_input.txt'))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {} -b {}".format(bin, ofd + '/Input/Transformed_input.txt',org, bin, ofd, ofd + '/BG/Transformed_input.txt'))
+
+            ########细胞定位的分析的绘图
+            #DEP
+            if os.path.exists(of + '/GOEnrich_Species/CC.txt'):
+                olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, of + '/GOEnrich_Species/CC.txt', of + '/GO_subcellular_localization', celllocation))
+                os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, of + '/GOEnrich_Species/CC.txt', of + '/GO_subcellular_localization', celllocation))
+            #UP
+            if os.path.exists(ofu + '/GOEnrich_Species/CC.txt'):
+                olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, ofu + '/GOEnrich_Species/CC.txt', ofu + '/GO_subcellular_localization', celllocation))
+                os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, ofu + '/GOEnrich_Species/CC.txt', ofu + '/GO_subcellular_localization', celllocation))
+            #Down
+            if os.path.exists(ofd + '/GOEnrich_Species/CC.txt'):
+                olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, ofd + '/GOEnrich_Species/CC.txt', ofd + '/GO_subcellular_localization', celllocation))
+                os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, ofd + '/GOEnrich_Species/CC.txt', ofd + '/GO_subcellular_localization', celllocation))
+
+            #####增加KEGG分类信息
+            if p.type != 'accsymbolfc':
+                olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, of, of))
+                os.system("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls".format(bin, of, of))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, of, of))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, of, of))
+                #UP
+                olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, ofu, ofu))
+                os.system("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls".format(bin, ofu, ofu))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, ofu, ofu))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, ofu, ofu))
+                #Down
+                olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, ofd, ofd))
+                os.system("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls".format(bin, ofd, ofd))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, ofd, ofd))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.xls KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, ofd, ofd))
+
+            else:
+                olog.write("perl {}/addFC4wfsymbol.pl {}\n".format(bin, of))
+                os.system("perl {}/addFC4wfsymbol.pl {}".format(bin, of))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, of, of))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, of, of))
+                #UP
+                olog.write("perl {}/addFC4wfsymbol.pl {}\n".format(bin, ofu))
+                os.system("perl {}/addFC4wfsymbol.pl {}".format(bin, ofu))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, ofu, ofu))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, ofu, ofu))
+                #Down
+                olog.write("perl {}/addFC4wfsymbol.pl {}\n".format(bin, ofd))
+                os.system("perl {}/addFC4wfsymbol.pl {}".format(bin, ofd))
+                olog.write("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx\n".format(bin, ofd, ofd))
+                os.system("Rscript {}/txt2xlsx.R {}/KEGG/KEGG.enriched.addFC.txt KEGG {}/KEGG/KEGG.enriched.xlsx".format(bin, ofd, ofd))
+
+            #####所有蛋白结果的绘图
+            #DEP
+            olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, of))
+            os.system("Rscript {}/PAAdraw.R {}".format(bin, of))
+            #UP
+            olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, ofu))
+            os.system("Rscript {}/PAAdraw.R {}".format(bin, ofu))
+            #Down
+            olog.write("Rscript {}/PAAdraw.R {}\n".format(bin, ofd))
+            os.system("Rscript {}/PAAdraw.R {}".format(bin, ofd))
+
+            ############挑选出GO的对应表
+            #DEP
+            olog.write("Rscript {}/selectGO.R {} 1 {} {}\n".format(bin, of + '/Input/Transformed_input.txt', org, of + "/GO"))
+            os.system("Rscript {}/selectGO.R {} 1 {} {}".format(bin, of + '/Input/Transformed_input.txt', org, of + "/GO"))
+            #UP
+            olog.write("Rscript {}/selectGO.R {} 1 {} {}\n".format(bin, ofu + '/Input/Transformed_input.txt', org, ofu + "/GO"))
+            os.system("Rscript {}/selectGO.R {} 1 {} {}".format(bin, ofu + '/Input/Transformed_input.txt', org, ofu + "/GO"))
+            #Down
+            olog.write("Rscript {}/selectGO.R {} 1 {} {}\n".format(bin, ofd + '/Input/Transformed_input.txt', org, ofd + "/GO"))
+            os.system("Rscript {}/selectGO.R {} 1 {} {}".format(bin, ofd + '/Input/Transformed_input.txt', org, ofd + "/GO"))
+
+            ###########生成Summary文件
+            if p.type == 'symbol':
+                olog.write("{}/makeSummary4symbol -i {} -input {}\n".format(bin, of, of + '/Input/Transformed_input.txt'))
+                os.system("{}/makeSummary4symbol -i {} -input {}".format(bin, of, of + '/Input/Transformed_input.txt'))
+                olog.write("Rscript {}/tsv2xlsx.R {} {} {}\n".format(bin, of + '/protein_summary.txt', 'summary', of + '/summary.xlsx'))
+                os.system("Rscript {}/tsv2xlsx.R {} {} {}".format(bin, of + '/protein_summary.txt', 'summary', of + '/summary.xlsx'))
+                #UP
+                olog.write("{}/makeSummary4symbol -i {} -input {}\n".format(bin, ofu, ofu + '/Input/Transformed_input.txt'))
+                os.system("{}/makeSummary4symbol -i {} -input {}".format(bin, ofu, ofu + '/Input/Transformed_input.txt'))
+                olog.write("Rscript {}/tsv2xlsx.R {} {} {}\n".format(bin, ofu + '/protein_summary.txt', 'summary', ofu + '/summary.xlsx'))
+                os.system("Rscript {}/tsv2xlsx.R {} {} {}".format(bin, ofu + '/protein_summary.txt', 'summary', ofu + '/summary.xlsx'))
+                #Down
+                olog.write("{}/makeSummary4symbol -i {} -input {}\n".format(bin, ofd, ofd + '/Input/Transformed_input.txt'))
+                os.system("{}/makeSummary4symbol -i {} -input {}".format(bin, ofd, ofd + '/Input/Transformed_input.txt'))
+                olog.write("Rscript {}/tsv2xlsx.R {} {} {}\n".format(bin, ofd + '/protein_summary.txt', 'summary', ofd + '/summary.xlsx'))
+                os.system("Rscript {}/tsv2xlsx.R {} {} {}".format(bin, ofd + '/protein_summary.txt', 'summary', ofd + '/summary.xlsx'))
+
+            ###########PPI search
+            taxid = code2taxid[p.org]
+            taxid = str(taxid)
+            print(taxid)
+            if os.path.exists(bin + '/stringdata/' + taxid + '.protein.info.v11.5.txt') and os.path.exists(
+                    bin + '/stringdata/' + taxid + '.protein.links.v11.5.txt') and os.path.exists(
+                bin + '/stringdata/' + taxid + '.protein.aliases.v11.5.txt'):
+                olog.write("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter\n".format(bin, of + '/Input/Transformed_input.txt', 3, taxid, 700, of + '/PPI'))
+                os.system("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter".format(bin, of + '/Input/Transformed_input.txt', 3, taxid, 700, of + '/PPI'))
+                olog.write("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt\n".format(wfmo.get_python(), bin, of + '/PPI', of + '/PPI'))
+                os.system("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt".format(wfmo.get_python(), bin, of + '/PPI', of + '/PPI'))
+                #UP
+                olog.write("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter\n".format(bin, ofu + '/Input/Transformed_input.txt', 3, taxid, 700, ofu + '/PPI'))
+                os.system("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter".format(bin, ofu + '/Input/Transformed_input.txt', 3, taxid, 700, ofu + '/PPI'))
+                olog.write("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt\n".format(wfmo.get_python(), bin, ofu + '/PPI', ofu + '/PPI'))
+                os.system("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt".format(wfmo.get_python(), bin, ofu + '/PPI', ofu + '/PPI'))
+                #Down
+                olog.write("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter\n".format(bin, ofd + '/Input/Transformed_input.txt', 3, taxid, 700, ofd + '/PPI'))
+                os.system("{}/ppiSearch -i {} -c {} -t {} -s {} -o {} -pt inter".format(bin, ofd + '/Input/Transformed_input.txt', 3, taxid, 700, ofd + '/PPI'))
+                olog.write("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt\n".format(wfmo.get_python(), bin, ofd + '/PPI', ofd + '/PPI'))
+                os.system("{} {}/ppi_de-duplicate.py -in {}/PPI.txt -o {}/NonRPPI.txt".format(wfmo.get_python(), bin, ofd + '/PPI', ofd + '/PPI'))
+
+
+                script_dir = os.path.normpath(bin + '/Network')
+                network_dir = os.path.normpath(of + '/Network')
+                if not os.path.exists(network_dir):
+                    os.makedirs(network_dir)
+
+                model_network_dir = os.path.normpath(script_dir + '/model')
+                # 有Fold Change的情况
+                if os.path.exists("{}/KEGG/KEGG.enriched.addFC.txt".format(of)):
+                    script_dir = os.path.normpath(bin + '/Network')
+                    model_network_dir = os.path.normpath(script_dir + '/model')
+                    network_dir = os.path.normpath(of + '/Network')
+                    os.system("{0} {1}/code_2.py -in {2}/KEGG/KEGG.enriched.addFC.txt -od {3}".format(wfmo.get_python(),script_dir, of,network_dir))
+                    olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, network_dir))
+                    os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, network_dir))
+
+                    if os.path.exists('{}/node_edge/pathway-pathway_node.txt'.format(network_dir)):
+                        olog.write(
+                            "{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(),script_dir,model_network_dir,network_dir))
+                        os.system(
+                            "{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
+
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
+                        olog.write(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=network_dir))
+                        os.system(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=network_dir))
+                        olog.write(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        os.system(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=network_dir))
+
+                        olog.write(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=network_dir))
+                        os.system(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=network_dir))
+
+                        olog.write(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        os.system(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir,network_dir=network_dir))
+                    # 转换输入文件格式
+                    olog.write("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt\n".format(bin, of, of))
+                    os.system("Rscript {0}/extractInput4network.R {1}/Input/Transformed_input.txt {1}/Input/Network_input.txt".format(bin, of, of))
+
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=network_dir, ifold=of))
+
+                    olog.write(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+
+                    olog.write(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    os.system(
+                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
+
+                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt"):
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (
+                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                    print("\nNetwork plot done!")
+
+                # 无fold change
+                elif os.path.exists("{}/KEGG/KEGG.enriched.txt".format(of)):
+                    olog.write("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}\n".format(wfmo.get_python(), bin, of, network_dir))
+                    os.system("{0} {1}/get_path2gene.py -in {2}/KEGG/KEGG.enriched.txt -od {3}".format(wfmo.get_python(), bin, of, network_dir))
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
+                        olog.write("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}\n".format(script_dir, network_dir))
+                        os.system("Rscript {0}/pathway-pathway.R {1}/node_edge/edge_all.txt {1}".format(script_dir, network_dir))
+
+                        olog.write("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}\n".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
+                        os.system("{0} {1}/pathway-pathway.py -model {2} -net {3} -edge_node {3}".format(wfmo.get_python(), script_dir, model_network_dir, network_dir))
+
+                        olog.write(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all\n".format(
+                                script_dir=script_dir, network_dir=network_dir))
+                        os.system(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_all.txt {network_dir} all".format(
+                                script_dir=script_dir, network_dir=network_dir))
+
+                        olog.write(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        os.system(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    if count_enrich_path("{}/KEGG/KEGG.enriched.txt".format(of)) > 0:
+                        olog.write(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part\n".format(
+                                script_dir=script_dir, network_dir=network_dir))
+                        os.system(
+                            "Rscript {script_dir}/pathway-gene.R {network_dir}/node_edge/edge_top5.txt {network_dir} part".format(
+                                script_dir=script_dir, network_dir=network_dir))
+
+                        olog.write(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                        os.system(
+                            "{python} {script_dir}/pathway-gene.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                                python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all\n".format(
+                            script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi_fc1.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {network_dir} all".format(
+                            script_dir=script_dir, network_dir=network_dir, ifold=of))
+
+                    olog.write(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s all".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    olog.write(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+                    os.system(
+                        "Rscript {script_dir}/pathway-gene-ppi.R {network_dir}/node_edge/edge_top5.txt {ifold}/PPI/NonRPPI.txt {ifold}/DESelection/DEPProtein.xls {network_dir} part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, network_dir=network_dir, ifold=of))
+
+                    olog.write(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part\n".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+                    os.system(
+                        "{python} {script_dir}/pathway-gene-ppi.py -model {model_network_dir} -net {network_dir} -edge_node {network_dir} -s part".format(
+                            python=wfmo.get_python(), script_dir=script_dir, model_network_dir=model_network_dir, network_dir=network_dir))
+
+                    # 需要构造一个FC信息的文件
+                    construct_fc_file("{}/Input/Transformed_input.txt".format(of), "{}/Input/Network_input.txt".format(of))
+
+                    olog.write(
+                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}\n".format(
+                            script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
+                    os.system(
+                        "Rscript {script_dir}/ppi.R {ifold}/PPI/NonRPPI.txt {ifold}/Input/Network_input.txt {network_dir} {symbol_idx} {fc_idx}".format(
+                            script_dir=script_dir, ifold=of, network_dir=network_dir, symbol_idx=1, fc_idx=2))
+
+                    if os.path.exists(network_dir + "/node_edge/ppi_edge.txt"):
+                        olog.write('%s %s/ppi.py -model %s -net %s -edge_node %s\n' % (
+                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+                        os.system('%s %s/ppi.py -model %s -net %s -edge_node %s' % (
+                            wfmo.get_python(), script_dir, model_network_dir, network_dir, network_dir))
+
+
+
+
+
+
+
+
+
+
+
+def count_enrich_path(infile, pvalue_idx=4, pvalue_cutoff=0.05):
+    ifile = open(infile, 'r')
+    c = 0
+    for line in ifile.readlines()[1:]:
+        row = line.rstrip().split('\t')
+        if float(row[pvalue_idx]) < float(pvalue_cutoff):
+            c = c + 1
+    ifile.close()
+    return c
+
+def construct_fc_file(infile, outfile):
+    if os.path.exists(infile):
+        ih = open(infile)
+        oh = open(outfile,'w')
+        lines = ih.readlines()
+        title=lines[0]
+        titlelist = title.rstrip().split('\t')
+        oh.write("{}\t{}\n".format(titlelist[1], 'Log2FC'))
+        for line in lines[1:]:
+            row = line.rstrip().split('\t')
+            oh.write("{}\t{}\n".format(row[1], 1))
+
+        ih.close()
+        oh.close()
+    else:
+        print("找不到输入文件")
+
+
+
+
+
+
+
+"""转换ID"""
+def convert_identifier(infile, org, type, pn, bin, olog):
+    olog.write("Rscript {}/convert_identifier.R {} {} {} {}\n".format(bin, infile, pn, org, type))
+    os.system("Rscript {}/convert_identifier.R {} {} {} {}".format(bin, infile, pn, org, type))
+
+"""创建一个目录"""
+def createdir(d):
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+"""拷贝文件到目录"""
+def cpfile(file, d):
+    if os.path.exists(file) and os.path.exists(d):
+        shutil.copy(file, d)
+    else:
+        print("Copy {} to {} failed".format(file, d))
+
+"""拷贝文件到另一个文件名"""
+def renamefile(file, tofile):
+    if os.path.exists(file):
+        shutil.copyfile(file, tofile)
+    else:
+        print("Cannot find {}".format(file))
+
+
 
 
 
@@ -379,6 +846,12 @@ if __name__ == '__main__':
     parser.add_argument('-mm', action='store', dest='maskminvalue', default=False,
                         help="是否屏蔽掉最小值后再做箱线图，默认是False, 通常Label要设为True, DIA看处理前是不是有缺失值")
 
+   # parser.add_argument('-i', action='store', dest='input', default='', help='input file')
+    parser.add_argument('-ibg', action='store', dest='ibg', default='none', help='background.input file')
+  #  parser.add_argument('-o', action='store', dest='pn', default='', help='Project ID as output fold')
+    parser.add_argument('-type', action='store', dest='type', default='symbol',
+                        help='convert type: symbol, accsymbol,accsymbolfc, accession')
+
 
     supp = ['hsa', 'rno', 'mmu', 'ssc', 'gga', 'bta', 'cel', 'ath', 'dre', 'dme', 'sce']
     code2taxid = dict()
@@ -408,12 +881,11 @@ if __name__ == '__main__':
     else:
         bin = '/usr/local/bio/PAA/bin'
     """
-    taxid = int(p.taxid)
-    if p.org in code2taxid:
-        taxid = code2taxid[p.org]
-
-    #createdir(p.pn)
-
+    # taxid = int(p.taxid)
+    # if p.org in code2taxid:
+    #     taxid = code2taxid[p.org]
+    taxid = code2taxid[p.org]
+    createdir(p.pn)
     olog = open(p.pn + '/command.log', 'a')
 
     # if p.reanal == 'select':
@@ -458,7 +930,6 @@ if __name__ == '__main__':
     #     exit()
 
 
-
     paralog = open(p.pn+'/parameter.txt', 'w')
     paralog.write("{}\n".format(' '.join(sys.argv)))
     paralog.write('FC\t{}\n'.format(p.fc))
@@ -468,74 +939,95 @@ if __name__ == '__main__':
     paralog.write('taxid\t{}\n'.format(taxid))
     paralog.close()
 
-    print("### Miss Value Handling ###")
-    miss_value_handling(p.pef, p.info, p.pn)
+    # print("### Miss Value Handling ###")
+    # miss_value_handling(p.pef, p.info, p.pn)
+    #
+    # print("### Get Probability Files ###")
+    # olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
+    # os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
+    #
+    # print("### Get All Motif Sequence ###")
+    # get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
+    #
+    # #######运行参数解析
+    # olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+    # os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+    #
+    # #######提取输入文件
+    # olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+    # os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+    #
+    # #######运行整体绘图
+    # print("### Run Sample Analysis ###")
+    # del_min = ''
+    # if p.maskminvalue is False:
+    #     del_min = 'FALSE'
+    # else:
+    #     del_min = 'TRUE'
+    # run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
+    #
+    # #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
+    # #读取anova行
+    # groupNumb = get_group_numb(p.pn + '/groupFile.txt')
+    # ipara = open(p.pn+'/comparison.txt')
+    # for line in ipara.readlines()[1:]:
+    #     row = line.rstrip().split('\t')
+    #     row[0] = row[0].strip()
+    #     if row[0] == 'anova':
+    #         grouporder = row[1].replace(';',',')
+    #         row[1] = row[1].replace(';', '_')
+    #         anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
+    #         anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
+    #         # ANOVA检验
+    #         sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
+    #         ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
+    #         ianova.write("{}\t{}\n".format(row[1], sig_number))
+    #         ianova.close()
+    #
+    # #######全部蛋白分析#######
+    # print("### Run All Proteins Analysis ###")
+    # if p.org in supp and os.path.exists(p.pn+'/input.txt'):
+    #     run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
+    # else:
+    #     print("有可能是物种参数设置错误，无法分析")
+    #     sys.exit()
+    #
+    # #######全部Motif分析(ProbALL)#######
+    # print("### Run All Probability Motif Analysis ###")
+    # of = p.pn + '/MotifAnalysis'
+    # if not os.path.exists(of):
+    #     os.mkdir(of)
+    # if os.path.exists(of+'/All_MotifInput.txt'):
+    #     codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+    #     subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
+    #                    .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
+    # else:
+    #     print("未检测到Motif分析输入文件！")
+    #     sys.exit()
 
-    print("### Get Probability Information ###")
-    olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
-    os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
-
-    print("### Get All Motif Sequence ###")
-    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
-
-    #######运行参数解析
-    olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-    os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-
-    #######提取输入文件
-    olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-    os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-
-    #######运行整体绘图
-    print("### Run Sample Drawing ###")
-    del_min = ''
-    if p.maskminvalue is False:
-        del_min = 'FALSE'
-    else:
-        del_min = 'TRUE'
-    run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
-
-    #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
-    #读取anova行
-    groupNumb = get_group_numb(p.pn + '/groupFile.txt')
-    ipara = open(p.pn+'/comparison.txt')
-    for line in ipara.readlines()[1:]:
-        row = line.rstrip().split('\t')
-        row[0] = row[0].strip()
-        if row[0] == 'anova':
-            grouporder = row[1].replace(';',',')
-            row[1] = row[1].replace(';', '_')
-            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
-            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
-            # ANOVA检验
-            sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
-            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
-            ianova.write("{}\t{}\n".format(row[1], sig_number))
-            ianova.close()
-
-    #######全部蛋白分析
-    if p.org in supp and os.path.exists(p.pn+'/input.txt'):
-        run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
-    else:
-        print("有可能是物种参数设置错误，无法分析")
-        sys.exit()
 
     #######每一组的差异筛选#######
     print("### Run DEP Selection ###")
     L = get_comparison(p.pn + '/comparison.txt')
-    print('L:' + L + '\n')
-    #######各组差异统计分析
-    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+    print(L)
 
-    #######全部Motif分析(ProbALL)
-    of = p.pn + '/MotifAnalysis'
-    if not os.path.exists(of):
-        os.mkdir(of)
-    if os.path.exists(of+'/All_MotifInput.txt'):
-        codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
-        subprocess.run("echo \"welovebp1188\" |sudo -S docker run  --rm -it -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
-                       .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
-    else:
-        print("未检测到Motif分析输入文件！")
-        sys.exit()
+    # 各组差异统计分析
+#    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+#    merge_dep_info(L, bin, p.pn, olog)
+
+    #######差异Motif分析#######
+    print("### Run DEP Motif Analysis ###")
+    get_DEP_motif(L, p.pn)
+
+
+    # 差异蛋白功能分析
+    print("### Run DEP Functional Analysis ###")
+    get_DEP_protein_id(L,p.pn)
+
+    #irun_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
+
+    #
+    #
+
+
 
