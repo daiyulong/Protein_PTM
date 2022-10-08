@@ -365,11 +365,11 @@ def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
                 olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, of + '/Input/Transformed_input.txt', org, bin, of))
                 os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, of + '/Input/Transformed_input.txt', org, bin, of))
                 # UP
-                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, of))
-                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, of))
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, ofu))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofu + '/Input/Transformed_input.txt', org, bin, ofu))
                 # Down
-                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, of))
-                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, of))
+                olog.write("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}\n".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, ofd))
+                os.system("Rscript {}/FuncAnal4ID.R -i {} -s {} -p {} -o {}".format(bin, ofd + '/Input/Transformed_input.txt', org, bin, ofd))
 
             else:
                 olog.write("Rscript {}/convertID.R {} {} {} {}\n".format(bin, p.ibg, of + '/BG', org, p.type))
