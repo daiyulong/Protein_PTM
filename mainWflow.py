@@ -314,6 +314,7 @@ def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
             olog.write("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls\n".format(bin, DEP, infile, DEP))
             os.system("Rscript {}/mergeTablePTM.R {}/Up.txt {} {}/Up.xls".format(bin, DEP, infile, DEP))
 
+
             # 差异绘图，火山图，差异蛋白统计图
             olog.write("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}\n".format(bin, DEP, fc, pvalue, DEP))
             os.system("Rscript {}/dVolcano.R {}/AllTest.xls {} {} {}".format(bin, DEP, fc, pvalue, DEP))
@@ -323,14 +324,29 @@ def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
             os.system("Rscript {}/drawHeatmapPTM.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
 
             # 差异比较绘图
-            olog.write("Rscript {}/dDEP.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
-            os.system("Rscript {}/dDEP.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
+            olog.write("Rscript {}/dDEP4PTM.R {}/DEP.xls {} {}\n".format(bin, DEP, groupfile, DEP))
+            os.system("Rscript {}/dDEP4PTM.R {}/DEP.xls {} {}".format(bin, DEP, groupfile, DEP))
 
 
 """差异位点对应蛋白的功能分析"""
 def run_dep_function_analysis(L, bin, pn, org, celllocation, supp, olog):
     for comp in L:
         DEP = pn + '/' + comp + '/DESelection'
+        # 提取Summary
+        olog.write(
+            "Rscript {}/selectTSV.R {}/DEPProtein.xls {}/protein_summary.txt {}/all_summamry.xlsx\n".format(bin, DEP, pn, pn + '/' + comp))
+        os.system(
+            "Rscript {}/selectTSV.R {}/DEPProtein.xls {}/protein_summary.txt {}/all_summary.xlsx".format(bin, DEP, pn, pn + '/' + comp))
+
+        olog.write(
+            "Rscript {}/selectTSV.R {}/UpProtein.xls {}/protein_summary.txt {}/up_summary.xlsx\n".format(bin, DEP, pn, pn + '/' + comp))
+        os.system(
+            "Rscript {}/selectTSV.R {}/UpProtein.xls {}/protein_summary.txt {}/up_summary.xlsx".format(bin, DEP, pn, pn + '/' + comp))
+
+        olog.write(
+            "Rscript {}/selectTSV.R {}/DownProtein.xls {}/protein_summary.txt {}/down_summary.xlsx\n".format(bin, DEP, pn, pn + '/' + comp))
+        os.system(
+            "Rscript {}/selectTSV.R {}/DownProtein.xls {}/protein_summary.txt {}/down_summary.xlsx".format(bin, DEP, pn, pn + '/' + comp))
         # 功能分析
         print("\nRun " + comp)
         if org in supp:
@@ -961,6 +977,341 @@ def construct_fc_file(infile, outfile):
     else:
         print("找不到输入文件")
 
+"""挑选文件到结果目录"""
+def file_selection(peptideFile, L, pn, olog):
+    reportFold = pn + '/' + pn + '_Result'
+    if os.path.exists(reportFold):
+        print("结果目录已存在")
+        sys.exit()
+
+    if not os.path.exists(reportFold):
+        os.makedirs(reportFold)
+
+    createdir(reportFold + '/1.ProjectInfo')
+
+    # result1
+   # renamefile(proteinFile, reportFold + '/1.ProjectInfo/Protein.xlsx')
+    renamefile(peptideFile, reportFold + '/1.ProjectInfo/Peptide.xlsx')
+
+    # result2
+    """
+    if os.path.exists(pn + '/2.QualityControl') and not os.path.exists(reportFold + '/2.QualityControl'):
+        shutil.copytree(pn + '/2.QualityControl', reportFold + '/2.QualityControl')
+        if os.path.exists(reportFold + '/2.QualityControl/peptide_error.png'):
+            os.remove(reportFold + '/2.QualityControl/peptide_error.png')
+        if os.path.exists(reportFold + '/2.QualityControl/peptide_error.pdf'):
+            os.remove(reportFold + '/2.QualityControl/peptide_error.pdf')
+    """
+    # result3
+    if os.path.exists(pn + '/2.SampleAnalysis') and not os.path.exists(reportFold + '/2.SampleAnalysis'):
+        shutil.copytree(pn + '/2.SampleAnalysis', reportFold + '/2.SampleAnalysis')
+
+
+    # result4 总蛋白结果整理
+    allProFold = reportFold + '/3.AllProtein'
+    createdir(allProFold)
+    cpfile(pn + '/summary.xlsx', allProFold)
+
+    createdir(allProFold + '/3.1GO')
+    goEnrichFold = allProFold + '/3.1GO'
+    # go level2 file
+    cpfile(pn + '/AllProtein/GOLevel2/GOLevel2.xlsx', goEnrichFold)
+    cpfile(pn + '/AllProtein/GOLevel2/GOlevel2CountBar.png', goEnrichFold)
+    cpfile(pn + '/AllProtein/GOLevel2/GOlevel2CountBar.pdf', goEnrichFold)
+
+    # go enrich file
+
+    if os.path.exists(pn + '/AllProtein/GOEnrich_Species'):
+        cpfile(pn + '/AllProtein/GOEnrich_Species/pCountPoint.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/pCountPoint.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/pRFPoint.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/pRFPoint.png', goEnrichFold)
+
+        cpfile(pn + '/AllProtein/GOEnrich_Species/BP.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/BP.EnrichedBar.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/MF.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/MF.EnrichedBar.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/CC.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/CC.EnrichedBar.png', goEnrichFold)
+
+        cpfile(pn + '/AllProtein/GOEnrich_Species/BP.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/BP.DAG.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/MF.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/MF.DAG.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/CC.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Species/CC.DAG.png', goEnrichFold)
+
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10BP.EnrichedSymbol.pdf',
+                   goEnrichFold + '/BP.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10BP.EnrichedSymbol.png',
+                   goEnrichFold + '/BP.RichFactor.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10MF.EnrichedSymbol.pdf',
+                   goEnrichFold + '/MF.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10MF.EnrichedSymbol.png',
+                   goEnrichFold + '/MF.RichFactor.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10CC.EnrichedSymbol.pdf',
+                   goEnrichFold + '/CC.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top10CC.EnrichedSymbol.png',
+                   goEnrichFold + '/CC.RichFactor.png')
+
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.BP.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/BP.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.BP.EnrichedSymbol2.png',
+                   goEnrichFold + '/BP.EnrichedSymbol.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.MF.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/MF.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.MF.EnrichedSymbol2.png',
+                   goEnrichFold + '/MF.EnrichedSymbol.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.CC.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/CC.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Species/Top20.CC.EnrichedSymbol2.png',
+                   goEnrichFold + '/CC.EnrichedSymbol.png')
+
+        cpfile(pn + '/AllProtein/GOEnrich_Species/GOEnrich.xlsx', goEnrichFold)
+
+    # KEGG files
+    allProtKegg = pn + '/AllProtein/KEGG'
+
+    keggfold = allProFold + '/3.2KEGG'
+    createdir(keggfold)
+    if os.path.exists(allProtKegg):
+        cpfile(allProtKegg + '/KEGG.Sig.Bar.png', keggfold)
+        cpfile(allProtKegg + '/KEGG.Sig.Bar.pdf', keggfold)
+
+        cpfile(allProtKegg + '/KEGG.Sig.Bar2.png', keggfold)
+        cpfile(allProtKegg + '/KEGG.Sig.Bar2.pdf', keggfold)
+
+        cpfile(allProtKegg + '/Top10EnrichedBar.png', keggfold)
+        cpfile(allProtKegg + '/Top10EnrichedBar.pdf', keggfold)
+
+        cpfile(allProtKegg + '/Top10EnrichSymbol.png', keggfold)
+        cpfile(allProtKegg + '/Top10EnrichSymbol.pdf', keggfold)
+
+        cpfile(allProtKegg + '/Top20EnrichedSymbol2.png', keggfold)
+        cpfile(allProtKegg + '/Top20EnrichedSymbol2.pdf', keggfold)
+
+        renamefile(allProtKegg + '/KEGG.bubble.png', keggfold + '/kegg.sig.png')
+        renamefile(allProtKegg + '/KEGG.bubble.pdf', keggfold + '/kegg.sig.pdf')
+
+        cpfile(allProtKegg + '/KEGG.enriched.xlsx', keggfold)
+
+    sublocfold = allProFold + '/3.3subcellular_localization'
+    # createdir(sublocfold)
+    if os.path.exists(pn + '/AllProtein/GO_subcellular_localization'):
+        shutil.copytree(pn + '/AllProtein/GO_subcellular_localization', sublocfold)
+
+    ##### result5 所有可信位点Motif分析
+    allMotifFold = reportFold + '/4.MotifAnalysis'
+    shutil.copytree(pn + '/MotifAnalysis', allMotifFold)
+
+    ####result6 差异筛选结果整理
+    depstatfold = reportFold + '/5.DEPStatistics'
+    createdir(depstatfold)
+    # cpfile(pn + '/DEP.xlsx', depstatfold)
+    # cpfile(pn + '/ExpressedAll.xlsx', depstatfold)
+    cpfile(pn + '/multiDEPStatbar.png', depstatfold)
+    cpfile(pn + '/multiDEPStatbar.pdf', depstatfold)
+
+    # venn diagram
+    vennfold = depstatfold + '/Venn'
+    if os.path.exists(pn + '/Venn/all.tif'):
+        createdir(vennfold)
+        venntype = ['all', 'up', 'down']
+        for vt in venntype:
+            cpfile(pn + '/Venn/{}.tif'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.euler.png'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.euler.pdf'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.eulerEllipse.png'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.eulerEllipse.pdf'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.merge.xls'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.CommonAcc.xls'.format(vt), vennfold)
+
+    ####result7 差异功能分析结果
+    depfuncfold = reportFold + '/6.DEPFunction'
+    createdir(depfuncfold)
+
+    # 拷贝图片
+    for comp in L:
+        createdir(depfuncfold + '/' + comp)
+        createdir(depstatfold + '/' + comp)
+        DESelection = pn + '/' + comp + '/DESelection'
+        renamefile(DESelection + '/Volcano.pdf', depstatfold + '/' + comp + '/' + comp + '.volcano.pdf')
+        renamefile(DESelection + '/Volcano.png', depstatfold + '/' + comp + '/' + comp + '.volcano.png')
+
+        renamefile(DESelection + '/Volcano_style2.pdf', depstatfold + '/' + comp + '/' + comp + '.volcano_s2.pdf')
+        renamefile(DESelection + '/Volcano_style2.png', depstatfold + '/' + comp + '/' + comp + '.volcano_s2.png')
+
+        renamefile(DESelection + '/FoldChange.scatter.pdf',
+                   depstatfold + '/' + comp + '/' + comp + '.FoldChange.scatter.pdf')
+        renamefile(DESelection + '/FoldChange.scatter.png',
+                   depstatfold + '/' + comp + '/' + comp + '.FoldChange.scatter.png')
+
+        renamefile(DESelection + '/pvalue.scatter.pdf', depstatfold + '/' + comp + '/' + comp + '.pvalue.scatter.pdf')
+        renamefile(DESelection + '/pvalue.scatter.png', depstatfold + '/' + comp + '/' + comp + '.pvalue.scatter.png')
+
+        renamefile(DESelection + '/updown.bar.pdf', depstatfold + '/' + comp + '/' + comp + '.updown.bar.pdf')
+        renamefile(DESelection + '/updown.bar.png', depstatfold + '/' + comp + '/' + comp + '.updown.bar.png')
+
+        renamefile(DESelection + '/DEP.Donut.pdf', depstatfold + '/' + comp + '/' + comp + '.DEP.Donut.pdf')
+        renamefile(DESelection + '/DEP.Donut.png', depstatfold + '/' + comp + '/' + comp + '.DEP.Donut.png')
+
+        renamefile(DESelection + '/Accession.pheatmap.pdf',
+                   depstatfold + '/' + comp + '/' + comp + '.accession.pheatmap.pdf')
+        renamefile(DESelection + '/Accession.pheatmap.png',
+                   depstatfold + '/' + comp + '/' + comp + '.accession.pheatmap.png')
+
+        renamefile(DESelection + '/Accession.pheatmapcolcluster.pdf',
+                   depstatfold + '/' + comp + '/' + comp + '.accession.pheatmapcolcluster.pdf')
+        renamefile(DESelection + '/Accession.pheatmapcolcluster.png',
+                   depstatfold + '/' + comp + '/' + comp + '.accession.pheatmapcolcluster.png')
+
+        # renamefile(DESelection + '/genesymbol.pheatmap.pdf',
+        #            depstatfold + '/' + comp + '/' + comp + '.genesymbol.pheatmap.pdf')
+        # renamefile(DESelection + '/genesymbol.pheatmap.png',
+        #            depstatfold + '/' + comp + '/' + comp + '.genesymbol.pheatmap.png')
+
+        # renamefile(DESelection + '/genesymbol.pheatmap.pdf',
+        #            depstatfold + '/' + comp + '/' + comp + '.genesymbol.pheatmapcolcluster.pdf')
+        # renamefile(DESelection + '/genesymbol.pheatmap.png',
+        #            depstatfold + '/' + comp + '/' + comp + '.genesymbol.pheatmapcolcluster.png')
+
+
+        # DEP单个绘图的拷贝
+        shutil.copytree(DESelection + '/Jitter', depstatfold + '/' + comp + '/' + comp + '.jitter')
+        shutil.copytree(DESelection + '/Boxplot', depstatfold + '/' + comp + '/' + comp + '.box')
+        shutil.copytree(DESelection + '/ScatterSE', depstatfold + '/' + comp + '/' + comp + '.scatter')
+        shutil.copytree(DESelection + '/BarComp', depstatfold + '/' + comp + '/' + comp + '.bar')
+
+        # 功能分析结果
+        renamefile(pn + '/' + comp + '/all_summary.xlsx', depfuncfold + '/' + comp + '/' + comp + '.all_summary.xlsx')
+        renamefile(pn + '/' + comp + '/up_summary.xlsx', depfuncfold + '/' + comp + '/' + comp + '.up_summary.xlsx')
+        renamefile(pn + '/' + comp + '/down_summary.xlsx', depfuncfold + '/' + comp + '/' + comp + '.down_summary.xlsx')
+
+        # 功能分析结果
+        for type in ['all', 'up', 'down']:
+            # # 以全部鉴定到的蛋白为参照的结果
+            # goidentIn = pn + '/' + comp + '/' + type + '/GOEnrich_Identified'
+            # if os.path.exists(goidentIn):
+            #     goidentOut = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_GO_Ident'
+            #     shutil.copytree(goidentIn, goidentOut)
+            #     deleteFiles = ['BP.addFC.txt', 'BP.cnet.pdf', 'BP.txt', 'BP.updown.txt',
+            #                    'MF.addFC.txt', 'MF.cnet.pdf', 'MF.txt', 'MF.updown.txt',
+            #                    'CC.addFC.txt', 'CC.cnet.pdf', 'CC.txt', 'CC.updown.txt']
+            #     for file in deleteFiles:
+            #         if os.path.exists(goidentOut + '/' + file):
+            #             os.remove(goidentOut + '/' + file)
+
+            # 以物种全蛋白为参照的结果
+            gospeciesIn = pn + '/' + comp + '/' + type + '/GOEnrich_Species'
+            gospeciesOut = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_GO_Species'
+            if os.path.exists(gospeciesIn):
+                shutil.copytree(gospeciesIn, gospeciesOut)
+                deleteFiles = ['BP.addFC.txt', 'BP.cnet.pdf', 'BP.txt', 'BP.updown.txt',
+                               'MF.addFC.txt', 'MF.cnet.pdf', 'MF.txt', 'MF.updown.txt',
+                               'CC.addFC.txt', 'CC.cnet.pdf', 'CC.txt', 'CC.updown.txt']
+                for file in deleteFiles:
+                    if os.path.exists(gospeciesOut + '/' + file):
+                        os.remove(gospeciesOut + '/' + file)
+            # GO level2
+            golevelIn = pn + '/' + comp + '/' + type + '/GOLevel2'
+            if os.path.exists(golevelIn):
+                shutil.copytree(golevelIn, depfuncfold + '/' + comp + '/' + comp + '.' + type + '_GO_Level2')
+
+            #亚细胞定位
+            gocelllocIn = pn + '/' + comp + '/' + type + '/GO_subcellular_localization'
+            gocelllocOut =depfuncfold + '/' + comp +'/'+comp+'.'+type+'_subcellular_localization'
+            if os.path.exists(gocelllocIn):
+                shutil.copytree(gocelllocIn,gocelllocOut)
+
+            # KEGG
+            keggIn = pn + '/' + comp + '/' + type + '/KEGG'
+            keggOut = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_KEGG'
+            if os.path.exists(keggIn):
+                shutil.copytree(keggIn, keggOut)
+                deleteFiles = ['KEGG.enriched.xls', 'KEGG.enriched.txt']
+                for file in deleteFiles:
+                    if os.path.exists(keggOut + '/' + file):
+                        os.remove(keggOut + '/' + file)
+
+
+            # if type == 'all':
+            #     """
+            #     cpfile(keggOut + '/Circos/circos.svg', keggOut)
+            #     cpfile(keggOut + '/Circos/circos.png', keggOut)
+            #     cpfile(keggOut + '/Circos/legend.svg', keggOut)
+            #     """
+            #     if os.path.exists(keggOut + '/Circos'):
+            #         shutil.rmtree(keggOut + '/Circos')
+
+        pfin_in = pn + '/' + comp + '/Network'
+        pfin_out = depfuncfold + '/' + comp + '/' + comp + '.PFIN'
+        if os.path.exists(pn + '/' + comp + '/Network'):
+            shutil.copytree(pfin_in, pfin_out)
+
+
+        #拷贝KEGG updownSbar
+        if os.path.exists(pn+'/'+comp+'/updownSbar.png'):
+            cpfile(pn+'/'+comp+'/updownSbar.png', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
+            cpfile(pn+'/'+comp+'/updownSbar.pdf', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
+
+
+#### ???
+    if os.path.exists(pn + '/Anova'):
+        shutil.copytree(pn + '/Anova', reportFold + '/7.ANOVA')
+        delete_files = ['group.txt', 'input.txt',
+                        'GOEnrich_Species/BP.txt', 'GOEnrich_Species/CC.txt','GOEnrich_Species/MF.txt',
+                        'KEGG/KEGG.enriched.txt','KEGG/KEGG.enriched.xls']
+        delete_folds = ['ReactomePA_Species', 'WikiPathway']
+
+        ag = os.listdir(reportFold + '/7.ANOVA')
+        for g in ag:
+            delete_filelist(reportFold + '/7.ANOVA/'+ g, delete_files)
+            delete_foldlist(reportFold + '/7.ANOVA/'+ g, delete_folds)
+
+        for g in ag:
+            filepath = reportFold + '/7.ANOVA/' + g + '/kmeans/'
+            kmeansfile = filepath + 'zscore10Hartigan-Wong.Class.xls'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreHartigan-Wong.Class.xls')
+
+            kmeansfile = filepath + 'zscore10Hartigan-Wong.kmeans.png'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreHartigan-Wong.kmeans.png')
+
+            kmeansfile = filepath + 'zscore10Hartigan-Wong.kmeans.pdf'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreHartigan-Wong.kmeans.pdf')
+
+            kmeansfile = filepath + 'zscore10Hartigan-Wong.kmeansldf.csv'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreHartigan-Wong.kmeansldf.csv')
+
+            kmeansfile = filepath + 'zscoreavgk5Hartigan-Wong.Class.xls'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreavgHartigan-Wong.Class.xls')
+
+            kmeansfile = filepath + 'zscoreavgk5Hartigan-Wong.kmeans.png'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreavgHartigan-Wong.kmeans.png')
+
+            kmeansfile = filepath + 'zscoreavgk5Hartigan-Wong.kmeans.pdf'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreavgHartigan-Wong.kmeans.pdf')
+
+            kmeansfile = filepath + 'zscoreavgk5Hartigan-Wong.kmeansldf.csv'
+            if os.path.exists(kmeansfile):
+                os.rename(kmeansfile, filepath + 'zscoreavgHartigan-Wong.kmeansldf.csv')
+
+"""按文件列表删除文件"""
+def delete_filelist(fold, filelist):
+    for f in filelist:
+        if os.path.exists(fold + '/' + f):
+            os.remove(fold + '/' + f)
+"""按目录列表删除目录"""
+def delete_foldlist(fold, foldlist):
+    for f in foldlist:
+        if os.path.exists(fold + '/' + f):
+            shutil.rmtree(fold + '/' + f)
 
 """转换ID"""
 def convert_identifier(infile, org, type, pn, bin, olog):
@@ -1059,27 +1410,27 @@ if __name__ == '__main__':
     createdir(p.pn)
     olog = open(p.pn + '/command.log', 'a')
 
-    # if p.reanal == 'select':
-    #     print("Run DEP Selection")
-    #     L = get_comparison(p.pn + '/comparison.txt')
-    #     resultdir = p.pn + '/' + p.pn + '_Result'
-    #     if os.path.exists(resultdir):
-    #         shutil.rmtree(resultdir)
-    #     file_selection(p.pf, p.pef, L, p.pn, olog)
-    #     os.system(
-    #         "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
-    #                                                            p.reporttype))
-    #     sys.exit()
-    #
-    # if p.reanal == 'report':
-    #     resultdir = p.pn + '/' + p.pn + '_Result'
-    #     if os.path.exists(resultdir+'/html'):
-    #         shutil.rmtree(resultdir+'/html')
-    #     os.system(
-    #         "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
-    #                                                            p.reporttype))
-    #     sys.exit()
-    #
+    if p.reanal == 'select':
+        print("Run DEP Selection")
+        L = get_comparison(p.pn + '/comparison.txt')
+        resultdir = p.pn + '/' + p.pn + '_Result'
+        if os.path.exists(resultdir):
+            shutil.rmtree(resultdir)
+        file_selection(p.pf, p.pef, L, p.pn, olog)
+        os.system(
+            "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
+                                                               p.reporttype))
+        sys.exit()
+
+    if p.reanal == 'report':
+        resultdir = p.pn + '/' + p.pn + '_Result'
+        if os.path.exists(resultdir+'/html'):
+            shutil.rmtree(resultdir+'/html')
+        os.system(
+            "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
+                                                               p.reporttype))
+        sys.exit()
+
     # if p.reanal=='ppi':
     #     # 相互作用网络
     #     print("Run Network Analysis")
@@ -1092,33 +1443,33 @@ if __name__ == '__main__':
     #     if os.path.exists(resultdir):
     #         shutil.rmtree(resultdir)
     #     file_selection(p.pf, p.pef, L, p.pn, olog)
-    #
-    #     ###生成报告
-    #
-    #     os.system(
-    #         "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
-    #                                                            p.reporttype))
-    #     exit()
 
-    # paralog = open(p.pn+'/parameter.txt', 'w')
-    # paralog.write("{}\n".format(' '.join(sys.argv)))
-    # paralog.write('FC\t{}\n'.format(p.fc))
-    # paralog.write('pvalue\t{}\n'.format(p.pvalue))
-    # paralog.write('org\t{}\n'.format(p.org))
-    # paralog.write('celllocation\t{}\n'.format(p.celllocation))
-    # paralog.write('taxid\t{}\n'.format(taxid))
-    # paralog.close()
+        ###生成报告
+
+        # os.system(
+        #     "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
+        #                                                        p.reporttype))
+        # exit()
+
+    paralog = open(p.pn+'/parameter.txt', 'w')
+    paralog.write("{}\n".format(' '.join(sys.argv)))
+    paralog.write('FC\t{}\n'.format(p.fc))
+    paralog.write('pvalue\t{}\n'.format(p.pvalue))
+    paralog.write('org\t{}\n'.format(p.org))
+    paralog.write('celllocation\t{}\n'.format(p.celllocation))
+    paralog.write('taxid\t{}\n'.format(taxid))
+    paralog.close()
 
 
 
-    print("### Miss Value Handling ###")
+    print("\n### Missing Value Analysis ###\n")
     miss_value_handling(p.pef, p.info, p.pn)
 
     print("### Get Probability Files ###")
     olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
     os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
 
-    print("### Get All Motif Sequence ###")
+    print("\n### Get All Motif Sequence ###\n")
     get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
 
     #######运行参数解析
@@ -1130,7 +1481,7 @@ if __name__ == '__main__':
     os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
 
     #######运行整体绘图
-    print("### Run Sample Analysis ###")
+    print("\n### Run Sample Analysis ###\n")
     del_min = ''
     if p.maskminvalue is False:
         del_min = 'FALSE'
@@ -1157,7 +1508,7 @@ if __name__ == '__main__':
             ianova.close()
 
     #######全部蛋白分析#######
-    print("### Run All Proteins Analysis ###")
+    print("\n### Run All Proteins Analysis ###\n")
     if p.org in supp and os.path.exists(p.pn+'/input.txt'):
         run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
     else:
@@ -1165,7 +1516,7 @@ if __name__ == '__main__':
         sys.exit()
 
     #######全部Motif分析(ProbALL)#######
-    print("### Run All Probability Motif Analysis ###")
+    print("\n### Run All Probability MotifAnalysis ###\n")
     of = p.pn + '/MotifAnalysis'
     if not os.path.exists(of):
         os.mkdir(of)
@@ -1179,21 +1530,27 @@ if __name__ == '__main__':
 
 
     #######每一组的差异筛选#######
-    print("### Run DEP Selection ###")
+    print("\n### Run DEP Selection ###\n")
     L = get_comparison(p.pn + '/comparison.txt')
     print(L)
-    # 各组差异统计分析
+    # 各组差异统计分析 #
     run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
-#    merge_dep_info(L, bin, p.pn, olog)
+
 
     #######差异Motif分析#######
-    print("### Run DEP Motif Analysis ###")
+    print("\n### Run DEP Motif Analysis ###\n")
     get_DEP_motif(L, p.pn)
 
-
-    # 差异蛋白功能分析
-    print("### Run DEP Functional Analysis ###")
+    # 差异蛋白功能分析 #
+    print("\n### Run DEP Functional Analysis ###\n")
     get_DEP_protein_id(L, p.pn)
-
     run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
+    # 差异柱状图合并 #
+    merge_updown_bar(L, p.pn, bin, olog)
+    #venn分析
+    venn_anal(L, p.pn, bin, olog)
+
+    #######挑选分析结果#######
+    print("\n### Run file selection ###\n")
+    file_selection(p.pef, L, p.pn, olog)
 
