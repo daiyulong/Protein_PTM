@@ -230,7 +230,8 @@ def get_DEP_motif(L,pn):
             os.system("Rscript {}/getDEPMotif.R {} {}".format(bin, comp, pn))
 
             # DEP motif分析
-            of = p.pn + '/DEPMotif/' + comp
+            of = os.path.join(os.getcwd(), p.pn + '/DEPMotif/' + comp)
+            print(of)
             if not os.path.exists(of):
                 os.mkdir(of)
 
@@ -1119,12 +1120,12 @@ def file_selection(peptideFile, L, pn, olog):
         venntype = ['all', 'up', 'down']
         for vt in venntype:
             cpfile(pn + '/Venn/{}.tif'.format(vt), vennfold)
-            cpfile(pn + '/Venn/{}.euler.png'.format(vt), vennfold)
-            cpfile(pn + '/Venn/{}.euler.pdf'.format(vt), vennfold)
-            cpfile(pn + '/Venn/{}.eulerEllipse.png'.format(vt), vennfold)
-            cpfile(pn + '/Venn/{}.eulerEllipse.pdf'.format(vt), vennfold)
             cpfile(pn + '/Venn/{}.merge.xls'.format(vt), vennfold)
-            cpfile(pn + '/Venn/{}.CommonAcc.xls'.format(vt), vennfold)
+            # cpfile(pn + '/Venn/{}.euler.png'.format(vt), vennfold)
+            # cpfile(pn + '/Venn/{}.euler.pdf'.format(vt), vennfold)
+            # cpfile(pn + '/Venn/{}.eulerEllipse.png'.format(vt), vennfold)
+            # cpfile(pn + '/Venn/{}.eulerEllipse.pdf'.format(vt), vennfold)
+            # cpfile(pn + '/Venn/{}.CommonAcc.xls'.format(vt), vennfold)
 
     ####result7 差异功能分析结果
     depfuncfold = reportFold + '/6.DEPFunction'
@@ -1233,7 +1234,6 @@ def file_selection(peptideFile, L, pn, olog):
                     if os.path.exists(keggOut + '/' + file):
                         os.remove(keggOut + '/' + file)
 
-
             # if type == 'all':
             #     """
             #     cpfile(keggOut + '/Circos/circos.svg', keggOut)
@@ -1243,19 +1243,32 @@ def file_selection(peptideFile, L, pn, olog):
             #     if os.path.exists(keggOut + '/Circos'):
             #         shutil.rmtree(keggOut + '/Circos')
 
-        pfin_in = pn + '/' + comp + '/Network'
-        pfin_out = depfuncfold + '/' + comp + '/' + comp + '.PFIN'
-        if os.path.exists(pn + '/' + comp + '/Network'):
-            shutil.copytree(pfin_in, pfin_out)
-
+            pfin_in = pn + '/' + comp + '/' + type + '/Network'
+            pfin_out = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_PFIN'
+            if os.path.exists(pfin_in):
+                shutil.copytree(pfin_in, pfin_out)
+            else:
+                print(pfin_in + "路径不存在！\n")
 
         #拷贝KEGG updownSbar
         if os.path.exists(pn+'/'+comp+'/updownSbar.png'):
             cpfile(pn+'/'+comp+'/updownSbar.png', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
             cpfile(pn+'/'+comp+'/updownSbar.pdf', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
 
+    ####result8 差异Motif分析结果
+    depmotiffold = reportFold + '/7.DEPMotif'
+    createdir(depmotiffold)
+    for comp in L:
+        for type in ['All', 'Up', 'Down']:
+            # 差异Motif分析结果
+            depmotifIn = pn + '/DEPMotif/' + comp + '/' + type
+            depmotifOut = depmotiffold + '/' + comp + '/' + comp + '.' + type
+            if os.path.exists(depmotifIn):
+                shutil.copytree(depmotifIn, depmotifOut)
+            else:
+                print(depmotifIn + "路径不存在！\n")
 
-#### ???
+#### Anova分析 ???
     if os.path.exists(pn + '/Anova'):
         shutil.copytree(pn + '/Anova', reportFold + '/7.ANOVA')
         delete_files = ['group.txt', 'input.txt',
@@ -1461,7 +1474,6 @@ if __name__ == '__main__':
     paralog.close()
 
 
-
     print("\n### Missing Value Analysis ###\n")
     miss_value_handling(p.pef, p.info, p.pn)
 
@@ -1517,7 +1529,8 @@ if __name__ == '__main__':
 
     #######全部Motif分析(ProbALL)#######
     print("\n### Run All Probability MotifAnalysis ###\n")
-    of = p.pn + '/MotifAnalysis'
+    of = os.path.join(os.getcwd(), p.pn + '/MotifAnalysis')
+    print(of)
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(of+'/All_MotifInput.txt'):
@@ -1528,14 +1541,13 @@ if __name__ == '__main__':
         print("未检测到Motif分析输入文件！")
         sys.exit()
 
-
     #######每一组的差异筛选#######
     print("\n### Run DEP Selection ###\n")
     L = get_comparison(p.pn + '/comparison.txt')
     print(L)
+
     # 各组差异统计分析 #
     run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
-
 
     #######差异Motif分析#######
     print("\n### Run DEP Motif Analysis ###\n")
