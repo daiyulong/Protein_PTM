@@ -117,18 +117,26 @@ def get_group_numb(groupfile):
     return (len(set(L)))
 
 """获取所有可信位点的motif序列"""
-def get_all_motif_seq(probfile, pn):
+def get_all_motif_seq(probfile, pn, isft):
     of = pn + "/MotifAnalysis"
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(probfile):
         df = pd.read_excel(probfile)
-        samples = ["PTM.CollapseKey", "window"]
-        print(samples)
-        dfsub = df.loc[:, samples]
-        dfsub.to_csv(of + "/Motif_All.txt", sep="\t", index=False)
-        dfID = dfsub.iloc[0:, -1:]
-        dfID.to_csv(of + "/All_MotifInput.txt", sep="\t", index=False, header=False)
+        if isft == "s":
+            samples = ["PTM.CollapseKey", "window"]
+            print(samples)
+            dfsub = df.loc[:, samples]
+            dfsub.to_csv(of + "/Motif_All.txt", sep="\t", index=False)
+            dfID = dfsub.iloc[0:, -1:]
+            dfID.to_csv(of + "/All_MotifInput.txt", sep="\t", index=False, header=False)
+        elif isft == "m":
+            samples = ["Protein.Position", "window"]
+            print(samples)
+            dfsub = df.loc[:, samples]
+            dfsub.to_csv(of + "/Motif_All.txt", sep="\t", index=False)
+            dfID = dfsub.iloc[0:, -1:]
+            dfID.to_csv(of + "/All_MotifInput.txt", sep="\t", index=False, header=False)
 
 """全部蛋白的分析"""
 def run_all_protein_analysis(bin, pn, org, celllocation):
@@ -1388,8 +1396,7 @@ if __name__ == '__main__':
     parser.add_argument('-reanal', action='store', dest='reanal', default='', help="重做: ppi|select|report")
     parser.add_argument('-mm', action='store', dest='maskminvalue', default=False,
                         help="是否屏蔽掉最小值后再做箱线图，默认是False, 通常Label要设为True, DIA看处理前是不是有缺失值")
-
-   # parser.add_argument('-i', action='store', dest='input', default='', help='input file')
+    parser.add_argument('-isft', action='store', dest='isft', default='s', help='Search the library software. s:Spectronaut; m:MSFragger; p:PD')
     parser.add_argument('-ibg', action='store', dest='ibg', default='none', help='background.input file')
     parser.add_argument('-type', action='store', dest='type', default='symbol', help='convert type: symbol, accsymbol,accsymbolfc, accession')
 
@@ -1447,7 +1454,6 @@ if __name__ == '__main__':
     # if p.reanal=='ppi':
     #     # 相互作用网络
     #     print("Run Network Analysis")
-    #     # ppi_search(L, bin, p.pn, taxid, olog)
     #     L = get_comparison(p.pn + '/comparison.txt')
     #     ppi_search2(L, bin, p.pn, taxid, olog)
     #
@@ -1478,11 +1484,11 @@ if __name__ == '__main__':
     miss_value_handling(p.pef, p.info, p.pn)
 
     print("### Get Probability Files ###")
-    olog.write("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
-    os.system("Rscript {}/getProbability.R {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn))
+    olog.write("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
+    os.system("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
 
     print("\n### Get All Motif Sequence ###\n")
-    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn)
+    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn, p.isft)
 
     #######运行参数解析
     olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
@@ -1565,4 +1571,9 @@ if __name__ == '__main__':
     #######挑选分析结果#######
     print("\n### Run file selection ###\n")
     file_selection(p.pef, L, p.pn, olog)
+    #
+    # ###生成报告
+    # os.system("{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
+
+    olog.close()
 
