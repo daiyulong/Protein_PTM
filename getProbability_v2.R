@@ -5,6 +5,11 @@
 
 ARGV<-commandArgs(TRUE)
 
+if(length(ARGS)<5){
+  cat("Rscript getProbability_v2.R [para] [input] [knninput] [pn] [type]\n")
+  q()
+}
+
 para<-as.character(ARGV[1])
 input<-as.character(ARGV[2])
 knninput<-as.character(ARGV[3])
@@ -70,7 +75,6 @@ if (type == "s") {
   
   
   # 生成可信位点表和可信位点对应的蛋白表 
-  
   dat_prob <- dat_merge
   proteID <-strsplit(dat_prob$PG.ProteinAccessions, ";")
   
@@ -80,7 +84,6 @@ if (type == "s") {
   
   for (i in 1:nrow(dat_prob)) {
     dat_prob$pmax[i] <- max(as.numeric(dat_sub_pro[i,]))
-    
     dat_prob$PAID[i] <- proteID[[i]][1]
   }
   

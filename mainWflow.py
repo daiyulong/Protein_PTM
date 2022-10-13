@@ -281,14 +281,14 @@ def get_DEP_motif(L,pn):
                 print("未检测到DownMotif_input.txt输入文件！")
 
 """差异蛋白list生成"""
-def get_DEP_protein_id(L,pn):
+def get_DEP_protein_id(L,pn,isft):
     for comp in L:
-        print("\nRun " + comp)
+        print("\nRun " + comp + "\n")
         infile = pn + "/1.Info/ModifiedProtein.xlsx"
         DEPfile = pn + "/input.txt"
         if os.path.exists(infile) and os.path.exists(DEPfile):
-            olog.write("Rscript {}/getDEPprotein.R {} {}\n".format(bin, comp, pn))
-            os.system("Rscript {}/getDEPprotein.R {} {}".format(bin, comp, pn))
+            olog.write("Rscript {}/getDEPprotein.R {} {} {}\n".format(bin, comp, pn, isft))
+            os.system("Rscript {}/getDEPprotein.R {} {} {}".format(bin, comp, pn, isft))
 
 """差异位点的筛选"""
 def run_dep_selection(L, bin, pn, olog, fc=2, pvalue=0.05):
@@ -1002,6 +1002,7 @@ def file_selection(peptideFile, L, pn, olog):
    # renamefile(proteinFile, reportFold + '/1.ProjectInfo/Protein.xlsx')
     renamefile(peptideFile, reportFold + '/1.ProjectInfo/Peptide.xlsx')
 
+
     # result2
     """
     if os.path.exists(pn + '/2.QualityControl') and not os.path.exists(reportFold + '/2.QualityControl'):
@@ -1561,7 +1562,7 @@ if __name__ == '__main__':
 
     # 差异蛋白功能分析 #
     print("\n### Run DEP Functional Analysis ###\n")
-    get_DEP_protein_id(L, p.pn)
+    get_DEP_protein_id(L, p.pn, p.type)
     run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
     # 差异柱状图合并 #
     merge_updown_bar(L, p.pn, bin, olog)
