@@ -16,30 +16,48 @@ import wfmo
 
 
 """MissValue Analysis"""
-def miss_value_handling(input1,para,pn):
+def miss_value_handling(input1,para,pn,isft):
     of = pn + "/1.Info"
     if not os.path.exists(of):
         os.mkdir(of)
     if os.path.exists(input1):
         df = pd.read_excel(input1)
         gdf = pd.read_excel(para, sheet_name='Sheet1')
-        samples = ["PTM.CollapseKey"] + gdf.loc[:, 'Sample'].tolist()
-        print(samples)
-        dfsub = df.loc[:, samples]
-        dfsub.set_index('PTM.CollapseKey')
+        if isft == "s":
+            samples = ["PTM.CollapseKey"] + gdf.loc[:, 'Sample'].tolist()
+            print(samples)
+            dfsub = df.loc[:, samples]
+            dfsub.set_index('PTM.CollapseKey')
 
-        # 通过parameter.xlsx获得样本及分组信息
-        d_group = {}
-        for i in range(len(gdf)):
-            samp = gdf.iloc[i, 0]
-            group = gdf.iloc[i, 1]
-            if group not in d_group:
-                d_group[group] = [samp]
-            else:
-                d_group[group].append(samp)
-        print(d_group)
-        df_data_copy = dfsub.copy(deep=True)
-        df_data_copy = df_data_copy.replace('Filtered', np.NaN)
+            # 通过parameter.xlsx获得样本及分组信息
+            d_group = {}
+            for i in range(len(gdf)):
+                samp = gdf.iloc[i, 0]
+                group = gdf.iloc[i, 1]
+                if group not in d_group:
+                    d_group[group] = [samp]
+                else:
+                    d_group[group].append(samp)
+            print(d_group)
+            df_data_copy = dfsub
+            df_data_copy = df_data_copy.replace('Filtered', np.NaN)
+        elif isft == "m":
+            samples = ["Protein Position"] + gdf.loc[:, 'Sample'].tolist()
+            print(samples)
+            dfsub = df.loc[:, samples]
+
+            ### 将样本分组文件转换为dict
+            d_group = {}
+            for i in range(len(gdf)):
+                samp = gdf.iloc[i, 0]
+                group = gdf.iloc[i, 1]
+                if group not in d_group:
+                    d_group[group] = [samp]
+                else:
+                    d_group[group].append(samp)
+            print(d_group)
+            df_data_copy = dfsub
+            df_data_copy = df_data_copy.replace(0, np.NaN)  # 将intensity中的0值替换成NA值
 
         def Confidence(df=None, d_group=None, confidence=0.5, how="outer", ):
             """函数接收一个数据框和分组，实现自定义分组过滤"""
@@ -999,11 +1017,12 @@ def file_selection(peptideFile, L, pn, olog):
     createdir(reportFold + '/1.ProjectInfo')
 
     # result1
-   # renamefile(proteinFile, reportFold + '/1.ProjectInfo/Protein.xlsx')
     renamefile(peptideFile, reportFold + '/1.ProjectInfo/Peptide.xlsx')
+    cpfile(pn + '/1.Info/ProbabilitySite.xlsx', reportFold + '/1.ProjectInfo')
+    cpfile(pn + '/1.Info/DEPProbabilitySite.xlsx', reportFold + '/1.ProjectInfo')
+    cpfile(pn + '/1.Info/Protein_PTM.xlsx', reportFold + '/1.ProjectInfo')
 
-
-    # result2
+    # result
     """
     if os.path.exists(pn + '/2.QualityControl') and not os.path.exists(reportFold + '/2.QualityControl'):
         shutil.copytree(pn + '/2.QualityControl', reportFold + '/2.QualityControl')
@@ -1012,12 +1031,12 @@ def file_selection(peptideFile, L, pn, olog):
         if os.path.exists(reportFold + '/2.QualityControl/peptide_error.pdf'):
             os.remove(reportFold + '/2.QualityControl/peptide_error.pdf')
     """
-    # result3
+    # result2
     if os.path.exists(pn + '/2.SampleAnalysis') and not os.path.exists(reportFold + '/2.SampleAnalysis'):
         shutil.copytree(pn + '/2.SampleAnalysis', reportFold + '/2.SampleAnalysis')
 
 
-    # result4 总蛋白结果整理
+    # result3 总蛋白结果整理
     allProFold = reportFold + '/3.AllProtein'
     createdir(allProFold)
     cpfile(pn + '/summary.xlsx', allProFold)
@@ -1110,15 +1129,14 @@ def file_selection(peptideFile, L, pn, olog):
     if os.path.exists(pn + '/AllProtein/GO_subcellular_localization'):
         shutil.copytree(pn + '/AllProtein/GO_subcellular_localization', sublocfold)
 
-    ##### result5 所有可信位点Motif分析
+    ##### result4 所有可信位点Motif分析
     allMotifFold = reportFold + '/4.MotifAnalysis'
     shutil.copytree(pn + '/MotifAnalysis', allMotifFold)
 
-    ####result6 差异筛选结果整理
+    ####result5 差异筛选结果整理
     depstatfold = reportFold + '/5.DEPStatistics'
     createdir(depstatfold)
-    # cpfile(pn + '/DEP.xlsx', depstatfold)
-    # cpfile(pn + '/ExpressedAll.xlsx', depstatfold)
+
     cpfile(pn + '/multiDEPStatbar.png', depstatfold)
     cpfile(pn + '/multiDEPStatbar.pdf', depstatfold)
 
@@ -1264,7 +1282,7 @@ def file_selection(peptideFile, L, pn, olog):
             cpfile(pn+'/'+comp+'/updownSbar.png', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
             cpfile(pn+'/'+comp+'/updownSbar.pdf', depfuncfold + '/' + comp + '/' + comp + '.' + 'all_KEGG')
 
-    ####result8 差异Motif分析结果
+    ####result7 差异Motif分析结果
     depmotiffold = reportFold + '/7.DEPMotif'
     createdir(depmotiffold)
     for comp in L:
@@ -1481,72 +1499,73 @@ if __name__ == '__main__':
     paralog.close()
 
 
+
     print("\n### Missing Value Analysis ###\n")
-    miss_value_handling(p.pef, p.info, p.pn)
-
-    print("### Get Probability Files ###")
-    olog.write("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
-    os.system("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
-
-    print("\n### Get All Motif Sequence ###\n")
-    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn, p.isft)
-
-    #######运行参数解析
-    olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-    os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-
-    #######提取输入文件
-    olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-    os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-
-    #######运行整体绘图
-    print("\n### Run Sample Analysis ###\n")
-    del_min = ''
-    if p.maskminvalue is False:
-        del_min = 'FALSE'
-    else:
-        del_min = 'TRUE'
-    run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
-
-    #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
-    #读取anova行
-    groupNumb = get_group_numb(p.pn + '/groupFile.txt')
-    ipara = open(p.pn+'/comparison.txt')
-    for line in ipara.readlines()[1:]:
-        row = line.rstrip().split('\t')
-        row[0] = row[0].strip()
-        if row[0] == 'anova':
-            grouporder = row[1].replace(';',',')
-            row[1] = row[1].replace(';', '_')
-            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
-            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
-            # ANOVA检验
-            sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
-            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
-            ianova.write("{}\t{}\n".format(row[1], sig_number))
-            ianova.close()
-
-    #######全部蛋白分析#######
-    print("\n### Run All Proteins Analysis ###\n")
-    if p.org in supp and os.path.exists(p.pn+'/input.txt'):
-        run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
-    else:
-        print("有可能是物种参数设置错误，无法分析")
-        sys.exit()
-
-    #######全部Motif分析(ProbALL)#######
-    print("\n### Run All Probability MotifAnalysis ###\n")
-    of = os.path.join(os.getcwd(), p.pn + '/MotifAnalysis')
-    print(of)
-    if not os.path.exists(of):
-        os.mkdir(of)
-    if os.path.exists(of+'/All_MotifInput.txt'):
-        codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
-        subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
-                       .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
-    else:
-        print("未检测到Motif分析输入文件！")
-        sys.exit()
+    miss_value_handling(p.pef, p.info, p.pn,p.isft)
+    #
+    # print("### Get Probability Files ###")
+    # olog.write("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
+    # os.system("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
+    #
+    # print("\n### Get All Motif Sequence ###\n")
+    # get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn, p.isft)
+    #
+    # #######运行参数解析
+    # olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+    # os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+    #
+    # #######提取输入文件
+    # olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+    # os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+    #
+    # #######运行整体绘图
+    # print("\n### Run Sample Analysis ###\n")
+    # del_min = ''
+    # if p.maskminvalue is False:
+    #     del_min = 'FALSE'
+    # else:
+    #     del_min = 'TRUE'
+    # run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
+    #
+    # #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
+    # #读取anova行
+    # groupNumb = get_group_numb(p.pn + '/groupFile.txt')
+    # ipara = open(p.pn+'/comparison.txt')
+    # for line in ipara.readlines()[1:]:
+    #     row = line.rstrip().split('\t')
+    #     row[0] = row[0].strip()
+    #     if row[0] == 'anova':
+    #         grouporder = row[1].replace(';',',')
+    #         row[1] = row[1].replace(';', '_')
+    #         anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
+    #         anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
+    #         # ANOVA检验
+    #         sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
+    #         ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
+    #         ianova.write("{}\t{}\n".format(row[1], sig_number))
+    #         ianova.close()
+    #
+    # #######全部蛋白分析#######
+    # print("\n### Run All Proteins Analysis ###\n")
+    # if p.org in supp and os.path.exists(p.pn+'/input.txt'):
+    #     run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
+    # else:
+    #     print("有可能是物种参数设置错误，无法分析")
+    #     sys.exit()
+    #
+    # #######全部Motif分析(ProbALL)#######
+    # print("\n### Run All Probability MotifAnalysis ###\n")
+    # of = os.path.join(os.getcwd(), p.pn + '/MotifAnalysis')
+    # print(of)
+    # if not os.path.exists(of):
+    #     os.mkdir(of)
+    # if os.path.exists(of+'/All_MotifInput.txt'):
+    #     codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+    #     subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
+    #                    .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
+    # else:
+    #     print("未检测到Motif分析输入文件！")
+    #     sys.exit()
 
     #######每一组的差异筛选#######
     print("\n### Run DEP Selection ###\n")
@@ -1554,18 +1573,22 @@ if __name__ == '__main__':
     print(L)
 
     # 各组差异统计分析 #
-    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+    # run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
 
     #######差异Motif分析#######
     print("\n### Run DEP Motif Analysis ###\n")
     get_DEP_motif(L, p.pn)
 
-    # 差异蛋白功能分析 #
-    print("\n### Run DEP Functional Analysis ###\n")
-    get_DEP_protein_id(L, p.pn, p.type)
-    run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
-    # 差异柱状图合并 #
-    merge_updown_bar(L, p.pn, bin, olog)
+
+    olog.write("Rscript {0}/getAllDEP_Result.R {1} {2} {3}\n".format(bin,p.pf, p.isft, p.pn))
+    os.system("Rscript {0}/getAllDEP_Result.R {1} {2} {3}".format(bin, p.pf, p.isft, p.pn))
+
+    # # 差异蛋白功能分析 #
+    # print("\n### Run DEP Functional Analysis ###\n")
+    # get_DEP_protein_id(L, p.pn, p.type)
+    # run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
+    # # 差异柱状图合并 #
+    # merge_updown_bar(L, p.pn, bin, olog)
     #venn分析
     venn_anal(L, p.pn, bin, olog)
 
