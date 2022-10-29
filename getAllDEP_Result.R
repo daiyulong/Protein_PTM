@@ -37,16 +37,6 @@ for (i in 1:NROW(d)) {
   
 }
 
-
-# sheet_list <- list()
-# sheet_list2 <- list()
-# for (comp in L) {
-#   allSite <- read.xlsx(paste0(pn,"/1.Info/ProbabilitySite.xlsx"),1)
-#   allProtein <- read.xlsx(paste0(pn, "/1.Info/ModifiedProtein.xlsx"),1)
-#   
-#   datname<- read.delim(paste0(pn,"/",comp,"/DESelection/DEP.xls"),sep = "\t", stringsAsFactors = FALSE,check.names = FALSE)
-#   depProtein <- read.delim(paste0(pn,"/",comp,"/DESelection/DEPProtein.xls"),sep = "\t", stringsAsFactors = FALSE,check.names = FALSE)
-#   
   
 if (type=="s") {
   

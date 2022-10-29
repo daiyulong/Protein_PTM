@@ -15,6 +15,7 @@ os.chdir(r"E:\projects_2022\BP20220597-1")
 df = pd.read_excel('PTM_site.xlsx')
 gdf = pd.read_excel('parameter.xlsx',sheet_name='Sheet1')
 
+
 samples = ["Protein Position"] + gdf.loc[:, 'Sample'].tolist()
 print(samples)
 dfsub = df.loc[:, samples]

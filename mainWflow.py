@@ -299,7 +299,7 @@ def get_DEP_motif(L,pn):
                 print("未检测到DownMotif_input.txt输入文件！")
 
 """差异蛋白list生成"""
-def get_DEP_protein_id(L,pn,isft):
+def get_DEP_protein_id(bin,L,pn,isft):
     for comp in L:
         print("\nRun " + comp + "\n")
         infile = pn + "/1.Info/ModifiedProtein.xlsx"
@@ -1575,17 +1575,17 @@ if __name__ == '__main__':
     # 各组差异统计分析 #
     run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
 
+    get_DEP_protein_id(bin, L, p.pn, p.isft)
     #######差异Motif分析#######
     print("\n### Run DEP Motif Analysis ###\n")
     get_DEP_motif(L, p.pn)
-
 
     olog.write("Rscript {0}/getAllDEP_Result.R {1} {2} {3}\n".format(bin,p.pf, p.isft, p.pn))
     os.system("Rscript {0}/getAllDEP_Result.R {1} {2} {3}".format(bin, p.pf, p.isft, p.pn))
 
     # 差异蛋白功能分析 #
     print("\n### Run DEP Functional Analysis ###\n")
-    get_DEP_protein_id(L, p.pn, p.type)
+
     run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
     # 差异柱状图合并 #
     merge_updown_bar(L, p.pn, bin, olog)
@@ -1593,11 +1593,12 @@ if __name__ == '__main__':
     venn_anal(L, p.pn, bin, olog)
 
     #######挑选分析结果#######
-    print("\n### Run file selection ###\n")
+    print("\n### Run File Selection ###\n")
     file_selection(p.pef, L, p.pn, olog)
-    #
-    # ###生成报告
-    # os.system("{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
+
+    ###生成报告
+    print("\n### Run Report Analysis ###\n")
+    os.system("{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
 
     olog.close()
 

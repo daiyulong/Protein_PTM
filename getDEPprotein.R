@@ -3,7 +3,7 @@ ARGS<-commandArgs(TRUE)
 library(openxlsx)
 
 if(length(ARGS)<3){
-  cat("Rscript getDEPMotif.R [comp] [pn] [type]\n")
+  cat("Rscript getDEPprotei.R [comp] [pn] [type]\n")
   q()
 }
 
