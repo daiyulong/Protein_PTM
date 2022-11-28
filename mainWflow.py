@@ -46,6 +46,7 @@ def miss_value_handling(input1,para,pn,isft):
             print(samples)
             dfsub = df.loc[:, samples]
 
+
             ### 将样本分组文件转换为dict
             d_group = {}
             for i in range(len(gdf)):
@@ -193,32 +194,32 @@ def run_all_protein_analysis(bin, pn, org, celllocation):
 ## ????
 """多组之间比较的方差分析"""
 def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file, grouporder):
-    olog.write("Rscript {}/extractTable.R {} {}\n".format(bin, input_file, pn + '/1.Info/matrix.txt'))
-    os.system("Rscript {}/extractTable.R {} {}".format(bin, input_file, pn + '/1.Info/matrix.txt'))
+    olog.write("Rscript {}/extractTablePTM.R {} {}\n".format(bin, input_file, pn + '/matrix.txt'))
+    os.system("Rscript {}/extractTablePTM.R {} {}".format(bin, input_file, pn + '/matrix.txt'))
 
-    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/1.Info/matrix.txt', pn + '/kmeans', grouporder))
-    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/1.Info/matrix.txt', pn + '/kmeans', grouporder))
+    olog.write("Rscript {}/kmeans.R {} {} {} {}\n".format(bin, input_group_file, pn + '/matrix.txt', pn + '/kmeans', grouporder))
+    os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/matrix.txt', pn + '/kmeans', grouporder))
 
     # 挑选做比较绘图的文件
-    olog.write("Rscript {}/selectFileFromTotal.R {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
-    os.system("Rscript {}/selectFileFromTotal.R {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
+    olog.write("Rscript {}/selectFileFromTotalPTM.R {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
+    os.system("Rscript {}/selectFileFromTotalPTM.R {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
 
     # 比较绘图
-    olog.write("Rscript {}/dDEP4multi.R {} {} {}\n".format(bin, pn + '/ANOVA.sig.txt', input_group_file, pn + '/Multi_group_expression'))
-    os.system("Rscript {}/dDEP4multi.R {} {} {}".format(bin, pn + '/ANOVA.sig.txt', input_group_file, pn + '/Multi_group_expression'))
+    olog.write("Rscript {}/dDEP4multiPTM.R {} {} {}\n".format(bin, pn + '/ANOVA.sig.txt_site.txt', input_group_file, pn + '/Multi_group_expression'))
+    os.system("Rscript {}/dDEP4multiPTM.R {} {} {}".format(bin, pn + '/ANOVA.sig.txt_site.txt', input_group_file, pn + '/Multi_group_expression'))
 
     #热图绘制
-    olog.write("Rscript {}/drawHeatmap.R {} {} {} multi\n".format(bin, pn + '/ANOVA.sig.txt',input_group_file, pn))
-    os.system("Rscript {}/drawHeatmap.R {} {} {} multi".format(bin, pn + '/ANOVA.sig.txt',input_group_file, pn))
+    olog.write("Rscript {}/drawHeatmapPTM.R {} {} {} multi\n".format(bin, pn + '/ANOVA.sig.txt_site.txt',input_group_file, pn))
+    os.system("Rscript {}/drawHeatmapPTM.R {} {} {} multi".format(bin, pn + '/ANOVA.sig.txt_site.txt',input_group_file, pn))
 
     # 显著的蛋白的功能分析和绘图
-    olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4\n".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin, input_file))
-    os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -b {} -d 4 -c 4".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin, input_file))
+    olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -d 4 -c 4\n".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin))
+    os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -d 4 -c 4".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin))
 
-    ########细胞定位的分析的绘图
-    if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
-        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
-        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
+#    ########细胞定位的分析的绘图
+#    if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
+#        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
+#        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
 
     #####增加KEGG分类信息
     olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, pn, pn))
@@ -976,6 +977,18 @@ def venn_anal(L, pn, bin, olog):
         olog.write("Rscript {}/dVenn.R {} {} \"{}\"\n".format(bin, sdown, pn + '/Venn/down', ';'.join(L)))
         os.system("Rscript {}/dVenn.R {} {} \"{}\"".format(bin, sdown, pn + '/Venn/down', ';'.join(L)))
 
+"""KESA 激酶底物富集分析"""
+def ksea_analysis(bin, org, pn, type, L, olog):
+    for comp in L:
+        ab_dir=os.getcwd()
+        infile = ab_dir +"/"+  pn + "/1.Info/DEPProbabilitySite.xlsx"
+        
+        if os.path.exists(infile):
+            olog.write("Rscript {}/KseaAnalysis.R {} {}/Kinase_Substrate_Dataset_202211.txt {} {} {} {}".format(bin, infile, bin, org, pn, type, comp))
+            os.system("Rscript {}/KseaAnalysis.R {} {}/Kinase_Substrate_Dataset_202211.txt {} {} {} {}".format(bin, infile, bin, org, pn, type, comp))
+        else:
+            print("找不到输入文件")
+
 
 def count_enrich_path(infile, pvalue_idx=4, pvalue_cutoff=0.05):
     ifile = open(infile, 'r')
@@ -1017,11 +1030,12 @@ def file_selection(peptideFile, L, pn, olog):
     createdir(reportFold + '/1.ProjectInfo')
 
     # result1
-    renamefile(peptideFile, reportFold + '/1.ProjectInfo/Peptide.xlsx')
+    renamefile(peptideFile, reportFold + '/1.ProjectInfo/PTMSite.xlsx')
     cpfile(pn + '/1.Info/ProbabilitySite.xlsx', reportFold + '/1.ProjectInfo')
     cpfile(pn + '/1.Info/DEPProbabilitySite.xlsx', reportFold + '/1.ProjectInfo')
-    cpfile(pn + '/1.Info/Protein_PTM.xlsx', reportFold + '/1.ProjectInfo')
-
+    cpfile(pn + '/1.Info/PTMProtein.xlsx', reportFold + '/1.ProjectInfo')
+    #cpfile(pn + '/1.Info/DEPModifiedProtein.xlsx', reportFold + '/1.ProjectInfo')
+    
     # result
     """
     if os.path.exists(pn + '/2.QualityControl') and not os.path.exists(reportFold + '/2.QualityControl'):
@@ -1098,6 +1112,56 @@ def file_selection(peptideFile, L, pn, olog):
 
         cpfile(pn + '/AllProtein/GOEnrich_Species/GOEnrich.xlsx', goEnrichFold)
 
+
+    #identified protein
+    if os.path.exists(pn + '/AllProtein/GOEnrich_Identified'):
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/pCountPoint.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/pCountPoint.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/pRFPoint.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/pRFPoint.png', goEnrichFold)
+
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/BP.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/BP.EnrichedBar.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/MF.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/MF.EnrichedBar.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/CC.EnrichedBar.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/CC.EnrichedBar.png', goEnrichFold)
+
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/BP.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/BP.DAG.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/MF.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/MF.DAG.png', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/CC.DAG.pdf', goEnrichFold)
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/CC.DAG.png', goEnrichFold)
+
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10BP.EnrichedSymbol.pdf',
+                   goEnrichFold + '/BP.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10BP.EnrichedSymbol.png',
+                   goEnrichFold + '/BP.RichFactor.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10MF.EnrichedSymbol.pdf',
+                   goEnrichFold + '/MF.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10MF.EnrichedSymbol.png',
+                   goEnrichFold + '/MF.RichFactor.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10CC.EnrichedSymbol.pdf',
+                   goEnrichFold + '/CC.RichFactor.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top10CC.EnrichedSymbol.png',
+                   goEnrichFold + '/CC.RichFactor.png')
+
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.BP.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/BP.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.BP.EnrichedSymbol2.png',
+                   goEnrichFold + '/BP.EnrichedSymbol.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.MF.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/MF.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.MF.EnrichedSymbol2.png',
+                   goEnrichFold + '/MF.EnrichedSymbol.png')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.CC.EnrichedSymbol2.pdf',
+                   goEnrichFold + '/CC.EnrichedSymbol.pdf')
+        renamefile(pn + '/AllProtein/GOEnrich_Identified/Top20.CC.EnrichedSymbol2.png',
+                   goEnrichFold + '/CC.EnrichedSymbol.png')
+
+        cpfile(pn + '/AllProtein/GOEnrich_Identified/GOEnrich.xlsx', goEnrichFold)
+
     # KEGG files
     allProtKegg = pn + '/AllProtein/KEGG'
 
@@ -1148,11 +1212,11 @@ def file_selection(peptideFile, L, pn, olog):
         for vt in venntype:
             cpfile(pn + '/Venn/{}.tif'.format(vt), vennfold)
             cpfile(pn + '/Venn/{}.merge.xls'.format(vt), vennfold)
-            # cpfile(pn + '/Venn/{}.euler.png'.format(vt), vennfold)
-            # cpfile(pn + '/Venn/{}.euler.pdf'.format(vt), vennfold)
-            # cpfile(pn + '/Venn/{}.eulerEllipse.png'.format(vt), vennfold)
-            # cpfile(pn + '/Venn/{}.eulerEllipse.pdf'.format(vt), vennfold)
-            # cpfile(pn + '/Venn/{}.CommonAcc.xls'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.euler.png'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.euler.pdf'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.eulerEllipse.png'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.eulerEllipse.pdf'.format(vt), vennfold)
+            cpfile(pn + '/Venn/{}.CommonAcc.xls'.format(vt), vennfold)
 
     ####result7 差异功能分析结果
     depfuncfold = reportFold + '/6.DEPFunction'
@@ -1217,17 +1281,17 @@ def file_selection(peptideFile, L, pn, olog):
 
         # 功能分析结果
         for type in ['all', 'up', 'down']:
-            # # 以全部鉴定到的蛋白为参照的结果
-            # goidentIn = pn + '/' + comp + '/' + type + '/GOEnrich_Identified'
-            # if os.path.exists(goidentIn):
-            #     goidentOut = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_GO_Ident'
-            #     shutil.copytree(goidentIn, goidentOut)
-            #     deleteFiles = ['BP.addFC.txt', 'BP.cnet.pdf', 'BP.txt', 'BP.updown.txt',
-            #                    'MF.addFC.txt', 'MF.cnet.pdf', 'MF.txt', 'MF.updown.txt',
-            #                    'CC.addFC.txt', 'CC.cnet.pdf', 'CC.txt', 'CC.updown.txt']
-            #     for file in deleteFiles:
-            #         if os.path.exists(goidentOut + '/' + file):
-            #             os.remove(goidentOut + '/' + file)
+            # 以全部鉴定到的蛋白为参照的结果
+            goidentIn = pn + '/' + comp + '/' + type + '/GOEnrich_Identified'
+            if os.path.exists(goidentIn):
+                goidentOut = depfuncfold + '/' + comp + '/' + comp + '.' + type + '_GO_Ident'
+                shutil.copytree(goidentIn, goidentOut)
+                deleteFiles = ['BP.addFC.txt', 'BP.cnet.pdf', 'BP.txt', 'BP.updown.txt',
+                               'MF.addFC.txt', 'MF.cnet.pdf', 'MF.txt', 'MF.updown.txt',
+                               'CC.addFC.txt', 'CC.cnet.pdf', 'CC.txt', 'CC.updown.txt']
+                for file in deleteFiles:
+                    if os.path.exists(goidentOut + '/' + file):
+                        os.remove(goidentOut + '/' + file)
 
             # 以物种全蛋白为参照的结果
             gospeciesIn = pn + '/' + comp + '/' + type + '/GOEnrich_Species'
@@ -1297,19 +1361,19 @@ def file_selection(peptideFile, L, pn, olog):
 
 #### Anova分析 ???
     if os.path.exists(pn + '/Anova'):
-        shutil.copytree(pn + '/Anova', reportFold + '/7.ANOVA')
+        shutil.copytree(pn + '/Anova', reportFold + '/8.ANOVA')
         delete_files = ['group.txt', 'input.txt',
                         'GOEnrich_Species/BP.txt', 'GOEnrich_Species/CC.txt','GOEnrich_Species/MF.txt',
                         'KEGG/KEGG.enriched.txt','KEGG/KEGG.enriched.xls']
         delete_folds = ['ReactomePA_Species', 'WikiPathway']
 
-        ag = os.listdir(reportFold + '/7.ANOVA')
+        ag = os.listdir(reportFold + '/8.ANOVA')
         for g in ag:
-            delete_filelist(reportFold + '/7.ANOVA/'+ g, delete_files)
-            delete_foldlist(reportFold + '/7.ANOVA/'+ g, delete_folds)
+            delete_filelist(reportFold + '/8.ANOVA/'+ g, delete_files)
+            delete_foldlist(reportFold + '/8.ANOVA/'+ g, delete_folds)
 
         for g in ag:
-            filepath = reportFold + '/7.ANOVA/' + g + '/kmeans/'
+            filepath = reportFold + '/8.ANOVA/' + g + '/kmeans/'
             kmeansfile = filepath + 'zscore10Hartigan-Wong.Class.xls'
             if os.path.exists(kmeansfile):
                 os.rename(kmeansfile, filepath + 'zscoreHartigan-Wong.Class.xls')
@@ -1401,7 +1465,6 @@ if __name__ == '__main__':
     parser.add_argument('-o', action='store', dest='pn', default='', help='Project ID_fc?? as output fold')
     parser.add_argument('-pf', action='store', dest='pf', default='Proteins.xlsx', help='input Protein.xlsx')
     parser.add_argument('-pef', action='store', dest='pef', default='PeptidesGroup.xlsx', help='input PeptideGroup.xlsx')
-    parser.add_argument('-psm', action='store', dest='psm', default='PSMs.xlsx', help='input PSMs.xlsx')
     parser.add_argument('-info', action='store', dest='info', default='parameter.xlsx', help='input parameters.xlsx')
     parser.add_argument('-fc', action='store', dest='fc', default=1.5, help='fold change cutoff, default is 1.5')
     parser.add_argument('-pvalue', action='store', dest='pvalue', default=0.05, help='p-value cutoff, default is 0.05')
@@ -1416,8 +1479,8 @@ if __name__ == '__main__':
     parser.add_argument('-mm', action='store', dest='maskminvalue', default=False,
                         help="是否屏蔽掉最小值后再做箱线图，默认是False, 通常Label要设为True, DIA看处理前是不是有缺失值")
     parser.add_argument('-isft', action='store', dest='isft', default='s', help='Search the library software. s:Spectronaut; m:MSFragger; p:PD')
-    parser.add_argument('-ibg', action='store', dest='ibg', default='none', help='background.input file')
     parser.add_argument('-type', action='store', dest='type', default='symbol', help='convert type: symbol, accsymbol,accsymbolfc, accession')
+    parser.add_argument('-ibg', action='store', dest='ibg', default='none', help='background.input file')
 
 
     supp = ['hsa', 'rno', 'mmu', 'ssc', 'gga', 'bta', 'cel', 'ath', 'dre', 'dme', 'sce']
@@ -1470,25 +1533,6 @@ if __name__ == '__main__':
                                                                p.reporttype))
         sys.exit()
 
-    # if p.reanal=='ppi':
-    #     # 相互作用网络
-    #     print("Run Network Analysis")
-    #     L = get_comparison(p.pn + '/comparison.txt')
-    #     ppi_search2(L, bin, p.pn, taxid, olog)
-    #
-    #     print("Run file selection")
-    #     resultdir = p.pn + '/' + p.pn + '_Result'
-    #     if os.path.exists(resultdir):
-    #         shutil.rmtree(resultdir)
-    #     file_selection(p.pf, p.pef, L, p.pn, olog)
-
-        ###生成报告
-
-        # os.system(
-        #     "{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn,
-        #                                                        p.reporttype))
-        # exit()
-
     paralog = open(p.pn+'/parameter.txt', 'w')
     paralog.write("{}\n".format(' '.join(sys.argv)))
     paralog.write('FC\t{}\n'.format(p.fc))
@@ -1500,105 +1544,110 @@ if __name__ == '__main__':
 
 
 
-    print("\n### Missing Value Analysis ###\n")
-    miss_value_handling(p.pef, p.info, p.pn,p.isft)
-
-    print("### Get Probability Files ###")
-    olog.write("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
-    os.system("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
-
-    print("\n### Get All Motif Sequence ###\n")
-    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn, p.isft)
-
-    #######运行参数解析
-    olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-    os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
-
-    #######提取输入文件
-    olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-    os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
-
-    #######运行整体绘图
-    print("\n### Run Sample Analysis ###\n")
-    del_min = ''
-    if p.maskminvalue is False:
-        del_min = 'FALSE'
-    else:
-        del_min = 'TRUE'
-    run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
-
-    #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
-    #读取anova行
-    groupNumb = get_group_numb(p.pn + '/groupFile.txt')
-    ipara = open(p.pn+'/comparison.txt')
-    for line in ipara.readlines()[1:]:
-        row = line.rstrip().split('\t')
-        row[0] = row[0].strip()
-        if row[0] == 'anova':
-            grouporder = row[1].replace(';',',')
-            row[1] = row[1].replace(';', '_')
-            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
-            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
-            # ANOVA检验
-            sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
-            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
-            ianova.write("{}\t{}\n".format(row[1], sig_number))
-            ianova.close()
-
-    #######全部蛋白分析#######
-    print("\n### Run All Proteins Analysis ###\n")
-    if p.org in supp and os.path.exists(p.pn+'/input.txt'):
-        run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
-    else:
-        print("有可能是物种参数设置错误，无法分析")
-        sys.exit()
-
-    #######全部Motif分析(ProbALL)#######
-    print("\n### Run All Probability MotifAnalysis ###\n")
-    of = os.path.join(os.getcwd(), p.pn + '/MotifAnalysis')
-    print(of)
-    if not os.path.exists(of):
-        os.mkdir(of)
-    if os.path.exists(of+'/All_MotifInput.txt'):
-        codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
-        subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
-                       .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
-    else:
-        print("未检测到Motif分析输入文件！")
-        sys.exit()
-
-    #######每一组的差异筛选#######
-    print("\n### Run DEP Selection ###\n")
+#    print("\n### Missing Value Analysis ###\n")
+#    miss_value_handling(p.pef, p.info, p.pn,p.isft)
+#    
+#    print("### Get Probability Files ###")
+#    olog.write("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
+#    os.system("Rscript {}/getProbability_v2.R {} {} {} {} {}".format(bin, p.info, p.pef, p.pn + "/1.Info/missValue_imputation.xlsx", p.pn, p.isft))
+#    
+#    print("\n### Get All Motif Sequence ###\n")
+#    get_all_motif_seq(p.pn + '/1.Info/ProbabilitySite.xlsx', p.pn, p.isft)
+#    
+#    #######运行参数解析
+#    olog.write("Rscript {0}/readParameterPTM.R {1} {2} {3}\n".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+#    os.system("Rscript {0}/readParameterPTM.R {1} {2} {3}".format(bin, p.info, p.pn+"/1.Info/matrix.txt", p.pn))
+#    
+#    #######提取输入文件
+#    olog.write("Rscript {0}/extractExpression2.R {1} {2} {3} {4}\n".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+#    os.system("Rscript {0}/extractExpression2.R {1} {2} {3} {4}".format(bin, p.pn + "/1.Info/ModifiedProtein.xlsx", p.info, p.pn, p.org))
+#    
+#    #######运行整体绘图
+#    print("\n### Run Sample Analysis ###\n")
+#    del_min = ''
+#    if p.maskminvalue is False:
+#        del_min = 'FALSE'
+#    else:
+#        del_min = 'TRUE'
+#    run_sample_analysis(p.pn+'/groupFile.txt', p.scaleMethod, p.col, p.pn, bin, olog, del_min)
+#    
+#    #######判断是不是多组数据，如果是多组数据需要运行ANOVA检验和绘图, ANOVA检验后对结果进行K-means聚类绘图
+#    #读取anova行
+#    groupNumb = get_group_numb(p.pn + '/groupFile.txt')
+#    ipara = open(p.pn+'/comparison.txt')
+#    for line in ipara.readlines()[1:]:
+#        row = line.rstrip().split('\t')
+#        row[0] = row[0].strip()
+#        if row[0] == 'anova':
+#            grouporder = row[1].replace(';',',')
+#            row[1] = row[1].replace(';', '_')
+#            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
+#            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
+#            # ANOVA检验
+#            sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
+#            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
+#            ianova.write("{}\t{}\n".format(row[1], sig_number))
+#            ianova.close()
+#    
+#    #######全部蛋白分析#######
+#    print("\n### Run All Proteins Analysis ###\n")
+#    if p.org in supp and os.path.exists(p.pn+'/input.txt'):
+#        run_all_protein_analysis(bin, p.pn, p.org, p.celllocation)
+#    else:
+#        print("有可能是物种参数设置错误，无法分析")
+#        sys.exit()
+#    
+#    #######全部Motif分析(ProbALL)#######
+#    print("\n### Run All Probability MotifAnalysis ###\n")
+#    of = os.path.join(os.getcwd(), p.pn + '/MotifAnalysis')
+#    print(of)
+#    if not os.path.exists(of):
+#        os.mkdir(of)
+#    if os.path.exists(of+'/All_MotifInput.txt'):
+#        codeContent='momo motifx -oc /meme --verbosity 1 --width 13 --eliminate-repeats 13 --min-occurrences 5'
+#        subprocess.run("echo \"welovebp1188\" |sudo -S docker run -v {workpath}:/meme --user `id -u`:`id -g` {docker_name} {codeC}  /meme/All_MotifInput.txt"
+#                       .format(workpath=of, docker_name='memesuite/memesuite:5.3.3', codeC=codeContent), shell=True, check=True)
+#    else:
+#        print("未检测到Motif分析输入文件！")
+#        sys.exit()
+#
+#    #######每一组的差异筛选#######
+#    print("\n### Run DEP Selection ###\n")
     L = get_comparison(p.pn + '/comparison.txt')
     print(L)
+#
+#    # 各组差异统计分析 #
+#    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
+#    
+#    get_DEP_protein_id(bin, L, p.pn, p.isft)
+#    #######差异Motif分析#######
+#    print("\n### Run DEP Motif Analysis ###\n")
+#    get_DEP_motif(L, p.pn)
+#
+#
+#    olog.write("Rscript {0}/getAllDEP_Result.R {1} {2} {3}\n".format(bin,p.pf, p.isft, p.pn))
+#    os.system("Rscript {0}/getAllDEP_Result.R {1} {2} {3}".format(bin, p.pf, p.isft, p.pn))
+#
+#   # 差异蛋白功能分析 #
+#    print("\n### Run DEP Functional Analysis ###\n")
+#    run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
+#   # 差异柱状图合并 #
+#    merge_updown_bar(L, p.pn, bin, olog)
+#    #venn分析
+#    venn_anal(L, p.pn, bin, olog)
+#
+    #KESA富集分析
+    ksea_analysis(bin, p.org, p.pn, p.isft, L, olog)
 
-    # 各组差异统计分析 #
-    run_dep_selection(L, bin, p.pn, olog, p.fc, p.pvalue)
-
-    get_DEP_protein_id(bin, L, p.pn, p.isft)
-    #######差异Motif分析#######
-    print("\n### Run DEP Motif Analysis ###\n")
-    get_DEP_motif(L, p.pn)
-
-    olog.write("Rscript {0}/getAllDEP_Result.R {1} {2} {3}\n".format(bin,p.pf, p.isft, p.pn))
-    os.system("Rscript {0}/getAllDEP_Result.R {1} {2} {3}".format(bin, p.pf, p.isft, p.pn))
-
-    # 差异蛋白功能分析 #
-    print("\n### Run DEP Functional Analysis ###\n")
-
-    run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
-    # 差异柱状图合并 #
-    merge_updown_bar(L, p.pn, bin, olog)
-    #venn分析
-    venn_anal(L, p.pn, bin, olog)
-
-    #######挑选分析结果#######
-    print("\n### Run File Selection ###\n")
-    file_selection(p.pef, L, p.pn, olog)
-
-    ###生成报告
-    print("\n### Run Report Analysis ###\n")
-    os.system("{} {}/proteinreport.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
-
-    olog.close()
-
+#    #######挑选分析结果#######
+#    print("\n### Run file selection ###\n")
+#    file_selection(p.pef, L, p.pn, olog)
+#    
+#    ###生成报告
+#    print("\n### Run Protein Report Analysis ###\n")
+#    
+#    olog.write("{} {}/proteinreport_PTM.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
+#    os.system("{} {}/proteinreport_PTM.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
+#
+#    olog.close()
+#
