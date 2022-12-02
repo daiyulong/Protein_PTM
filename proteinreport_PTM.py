@@ -570,7 +570,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
 
 
         depfuncurl = '../6.DEPFunction'
-        depfun     = self.pn+'/6.DEPFunction'
+        depfun = self.pn+'/6.DEPFunction'
         #dpo.write("<h2>{}.{} 差异蛋白的GO功能注释与富集</h2>".format(self.index, h2id))
         self.print_h2(dpo, "差异位点的蛋白GO功能注释与富集", h2id, "dep.html",
                       "dep{}".format(h2id))
@@ -607,7 +607,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
         dpo.write("""<div><br /><br /><p>为了进一步筛选统计学意义上更为重要的GO term。使用fisher精确检验富集方法得到p-value，其小于0.05为功
         能显著富集，值越小表示功能富集越显著。下图展示了BP、MF和CC共计3个分支下差异蛋白富集显著性各top 10的GO term。横坐标为富集显著性
         p-value的负对数转化，纵坐标为GO term，每个圆圈表示一个GO term，圆圈大小表示差异蛋白count，3大分支分别用不同的颜色分别表示。
-        <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\*.vs.*.all_GO_Species\pCountPoint</span></p>
+        <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\</span></p>
         </div>
         """)
         self.print_accordion_head(dpo, "goenrich")
@@ -617,12 +617,21 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 show = 'show'
             else:
                 show = ''
-            self.print_accordion_element(dpo, "goenrich", "goenrich" + str(c),
-                                         "goe" + str(c), comp,
-                                         self.return_image(
-                                             depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/pCountPoint.png',
-                                             "图{}-{} {}组的差异蛋白富集气泡图".format(self.index, figid, comp)), show
-                                         )
+
+            if os.path.exists(depfun + '/' + comp + '/' + comp + '.all_GO_Species'):
+                self.print_accordion_element(dpo, "goenrich", "goenrich" + str(c),
+                                             "goe" + str(c), comp,
+                                             self.return_image(
+                                                 depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/pCountPoint.png',
+                                                 "图{}-{} {}组的差异蛋白富集气泡图".format(self.index, figid, comp)), show
+                                             )
+            else:
+                self.print_accordion_element(dpo, "goenrich", "goenrich" + str(c),
+                                             "goe" + str(c), comp,
+                                             self.return_image(
+                                                 depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/pCountPoint.png',
+                                                 "图{}-{} {}组的差异蛋白富集气泡图".format(self.index, figid, comp)), show
+                                             )
             figid = figid + 1
             c = c + 1
 
@@ -631,7 +640,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
         #pRFCount
         dpo.write("""<div><br /><br /><p>下图也同时展示了的三大分支term显著性top 10的结果，其中圆圈大小表示富集因子（Rich factor），Rich factor=（a/b）/（c/d），
         a表示注释到该term的差异蛋白数，b表示注释到term的差异蛋白总数，c表示该GO term的背景蛋白数，d表示总GO term的背景蛋白数。</p>
-        <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\*.vs.*.all_GO_Species\pRFPoint</span></p>
+        <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\</span></p>
         </div>
         """)
         self.print_accordion_head(dpo, "goenrichrf")
@@ -641,12 +650,20 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 show = 'show'
             else:
                 show = ''
-            self.print_accordion_element(dpo, "goenrichrf", "goenrichrf" + str(c),
-                                         "goerf" + str(c), comp,
-                                         self.return_image(
-                                             depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/pRFPoint.png',
-                                             "图{}-{} {}组的差异蛋白富集气泡图（BP，CC and MF）".format(self.index, figid, comp)), show
-                                         )
+            if os.path.exists(depfun + '/' + comp + '/' + comp + '.all_GO_Species'):
+                self.print_accordion_element(dpo, "goenrichrf", "goenrichrf" + str(c),
+                                             "goerf" + str(c), comp,
+                                             self.return_image(
+                                                 depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/pRFPoint.png',
+                                                 "图{}-{} {}组的差异蛋白富集气泡图（BP，CC and MF）".format(self.index, figid, comp)), show
+                                             )
+            else:
+                self.print_accordion_element(dpo, "goenrichrf", "goenrichrf" + str(c),
+                                             "goerf" + str(c), comp,
+                                             self.return_image(
+                                                 depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/pRFPoint.png',
+                                                 "图{}-{} {}组的差异蛋白富集气泡图（BP，CC and MF）".format(self.index, figid, comp)), show
+                                             )
             figid = figid + 1
             c = c + 1
 
@@ -655,7 +672,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
         #top10 气泡图
         dpo.write("""<div><br /><br /><p>下图展示了差异蛋白富集显著性top 10的GO term，气泡图可以同时显示p-value、rich factor和count。
         横坐标表示rich factor，纵坐标表示p-value的负对数转化，圆圈大小表示count，不同的颜色表示不同的GO term。</p>
-                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\*.vs.*.all_GO_Species\[Top10[BP|CC|MF].EnrichedSymbol</span></p>
+                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\</span></p>
                 </div>
                 """)
         self.print_accordion_head(dpo, "top10enrichedsymbol")
@@ -665,27 +682,50 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 show = 'show'
             else:
                 show = ''
-            content = self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10BP.EnrichedSymbol.png',
-                "图{}-{} {}组的差异蛋白的BP term富集气泡图（top10）".format(self.index, figid, comp))
-            figid = figid + 1
+            if os.path.exists(depfun + '/' + comp + '/' + comp + '.all_GO_Species'):
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10BP.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的BP term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10CC.EnrichedSymbol.png',
-                "图{}-{} {}组的差异蛋白的CC term富集气泡图（top10）".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10CC.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的CC term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10MF.EnrichedSymbol.png',
-                "图{}-{} {}组的差异蛋白的MF term富集气泡图（top10）".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top10MF.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的MF term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            self.print_accordion_element(dpo, "top10enrichedsymbol", "top10enrichedsymbol" + str(c),
-                                         "top10enrsym" + str(c), comp,
-                                         content, show
-                                         )
-            figid = figid + 1
-            c = c + 1
+                self.print_accordion_element(dpo, "top10enrichedsymbol", "top10enrichedsymbol" + str(c),
+                                             "top10enrsym" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
+            else:
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top10BP.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的BP term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top10CC.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的CC term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top10MF.EnrichedSymbol.png',
+                    "图{}-{} {}组的差异蛋白的MF term富集气泡图（top10）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                self.print_accordion_element(dpo, "top10enrichedsymbol", "top10enrichedsymbol" + str(c),
+                                             "top10enrsym" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
 
         self.print_accordion_bottom(dpo)
 
@@ -693,7 +733,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
 
         # top20气泡图
         dpo.write("""<div><br /><br /><p>下图展示了差异蛋白富集显著性top20的GO term。横坐标表示p-value的负对数转化，圆圈颜色表示rich factor，圆圈大小表示count。</p>
-                                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\*.vs.*.all_GO_Species\Top20.[BP|MF|CC].EnrichedSymbol2</span></p>
+                                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\</span></p>
                                 </div>
                                 """)
         self.print_accordion_head(dpo, "Top20enrichedsymbol")
@@ -703,27 +743,50 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 show = 'show'
             else:
                 show = ''
-            content = self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.BP.EnrichedSymbol2.png',
-                "图{}-{} {}组的差异蛋白的BP term富集气泡图（top20）".format(self.index, figid, comp))
-            figid = figid + 1
+            if os.path.exists(depfun + '/' + comp + '/' + comp + '.all_GO_Species'):
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.BP.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的BP term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.CC.EnrichedSymbol2.png',
-                "图{}-{} {}组的差异蛋白的CC term富集气泡图（top20）".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.CC.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的CC term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.MF.EnrichedSymbol2.png',
-                "图{}-{} {}组的差异蛋白的MF term富集气泡图（top20）".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/Top20.MF.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的MF term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
 
-            self.print_accordion_element(dpo, "Top20enrichedsymbol", "Top20enrichedsymbol" + str(c),
-                                         "top20enrsym" + str(c), comp,
-                                         content, show
-                                         )
-            figid = figid + 1
-            c = c + 1
+                self.print_accordion_element(dpo, "Top20enrichedsymbol", "Top20enrichedsymbol" + str(c),
+                                             "top20enrsym" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
+            else:
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top20.BP.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的BP term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top20.CC.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的CC term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/Top20.MF.EnrichedSymbol2.png',
+                    "图{}-{} {}组的差异蛋白的MF term富集气泡图（top20）".format(self.index, figid, comp))
+                figid = figid + 1
+
+                self.print_accordion_element(dpo, "Top20enrichedsymbol", "Top20enrichedsymbol" + str(c),
+                                             "top20enrsym" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
 
         self.print_accordion_bottom(dpo)
 
@@ -732,7 +795,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 以方框表示。并通过包含关系（is a）将相关联的GO term一起展示，用圆框表示。包含关系（is a）的具体解释可参见
                 http://geneontology.org/docs/ontology-relations/。方框或圆框中展示了GO term的ID、description、p值、count与背景数。
                 颜色越接近红色表示富集显著性越高。</p>
-                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\*.vs.*.all_GO_Species\[BP|MF|CC].DAG.png</span></p>
+                <p>GO富集分析结果目录:<span class="text-primary">6. DEPFunction\*.vs.*\</span></p>
                 </div>
                                 """)
         self.print_accordion_head(dpo, "dagraph")
@@ -742,27 +805,50 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
                 show = 'show'
             else:
                 show = ''
-            content = self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/BP.DAG.png',
-                "图{}-{} {}组的差异蛋白的BP富集有向无循环图".format(self.index, figid, comp))
-            figid = figid + 1
+            if os.path.exists(depfun + '/' + comp + '/' + comp + '.all_GO_Species'):
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/BP.DAG.png',
+                    "图{}-{} {}组的差异蛋白的BP富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/CC.DAG.png',
-                "图{}-{} {}组的差异蛋白的CC富集有向无循环图".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/CC.DAG.png',
+                    "图{}-{} {}组的差异蛋白的CC富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
 
-            content = content + self.return_image(
-                depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/MF.DAG.png',
-                "图{}-{} {}组的差异蛋白的MF富集有向无循环图".format(self.index, figid, comp))
-            figid = figid + 1
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Species/MF.DAG.png',
+                    "图{}-{} {}组的差异蛋白的MF富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
 
-            self.print_accordion_element(dpo, "dagraph", "dagraph" + str(c),
-                                         "dag" + str(c), comp,
-                                         content, show
-                                         )
-            figid = figid + 1
-            c = c + 1
+                self.print_accordion_element(dpo, "dagraph", "dagraph" + str(c),
+                                             "dag" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
+            else:
+                content = self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/BP.DAG.png',
+                    "图{}-{} {}组的差异蛋白的BP富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/CC.DAG.png',
+                    "图{}-{} {}组的差异蛋白的CC富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
+
+                content = content + self.return_image(
+                    depfuncurl + '/' + comp + '/' + comp + '.all_GO_Ident/MF.DAG.png',
+                    "图{}-{} {}组的差异蛋白的MF富集有向无循环图".format(self.index, figid, comp))
+                figid = figid + 1
+
+                self.print_accordion_element(dpo, "dagraph", "dagraph" + str(c),
+                                             "dag" + str(c), comp,
+                                             content, show
+                                             )
+                figid = figid + 1
+                c = c + 1
 
         self.print_accordion_bottom(dpo)
 
@@ -1142,7 +1228,7 @@ Add: 上海市闵行区紫月路468号5楼 | Web: www.bioprofile.cn | Tel: 40082
             if os.path.exists(self.pn + '/8.ANOVA/anova_sig_number.txt'):
                 mco.write("""<div><p>单因素方检验中统计学中显著的修饰位点数的统计(p&lt;0.05)</p></div>""")
                 mco.write("""<table class="table"><thead><tr><td>组别</td><td>显著的修饰位点数</td></tr></thead><tbody>""")
-                ias = open(self.pn + '/7.ANOVA/anova_sig_number.txt')
+                ias = open(self.pn + '/8.ANOVA/anova_sig_number.txt')
                 for line in ias.readlines():
                     row = line.rstrip().split('\t')
                     mco.write("""<tr><td>{}</td><td>{}</td></tr>""".format(row[0], row[1]))
@@ -1846,9 +1932,8 @@ Methods in molecular biology (Clifton, NJ) 2011;696:291-303.</h6>
 Research, 43(W1):W39-W49, 2015.</h6>
         	<h1>{3}. 附录<a name="lit4"></a></h1>
         		<h4>|--1.ProjectInfo/  项目信息结果目录</h4>
-        		 <h5>|&nbsp;&nbsp;|--Protein.xlsx  蛋白鉴定表</h5>
-        		 <h5>|&nbsp;&nbsp;|--Site.xlsx  修饰位点鉴定表</h5>
-        		 <h5>|&nbsp;&nbsp;|--Protein_PTM.xlsx  合并修饰位点的蛋白鉴定表</h5>
+        		 <h5>|&nbsp;&nbsp;|--PTMSite.xlsx  修饰位点鉴定表</h5>
+        		 <h5>|&nbsp;&nbsp;|--PTMProtein.xlsx  合并修饰位点的蛋白鉴定表</h5>
         		 <h5>|&nbsp;&nbsp;|--ProbabilitySite.xlsx  可信修饰位点鉴定表</h5>
         		 <h5>|&nbsp;&nbsp;|--DEPProbabilitySite.xlsx  差异修饰位点鉴定表</h5>
         		<h4>|-- 2.SampleAnalysis/  样本比较分析目录</h4>
@@ -1940,11 +2025,24 @@ Research, 43(W1):W39-W49, 2015.</h6>
         self.lefthandle.write("</div></body></html>")
         self.lefthandle.close()
 
-    def print_firstpage(self):
+    def print_firstpage_lfq(self):
         tp = open(self.pn+'/html/firstpage.html', 'w')
         self.print_head_left(tp)
-        tp.write("""<div><a name="fengmianPTM"></a><img src="img/fengmianPTM.jpg" width = 100% /><a name="fengmianPTM"></a></div>
+        tp.write("""<div><a name="fengmianPTM_LF"></a><img src="img/fengmianPTM_LF.jpg" width = 100% /><a name="fengmianPTM_LF"></a></div>
         
+        """)
+        self.print_h1(tp, "主要分析内容", "firstpage.html", "firstpage")
+        tp.write("""<div class="text-center"><img src="img/analPTM.jpg" width=800 /></div>""")
+        self.print_bottom(tp)
+        tp.close()
+
+        self.index = self.index + 1
+
+    def print_firstpage_dia(self):
+        tp = open(self.pn + '/html/firstpage.html', 'w')
+        self.print_head_left(tp)
+        tp.write("""<div><a name="fengmianPTM_DIA"></a><img src="img/fengmianPTM_DIA.jpg" width = 100% /><a name="fengmianPTM_DIA"></a></div>
+
         """)
         self.print_h1(tp, "主要分析内容", "firstpage.html", "firstpage")
         tp.write("""<div class="text-center"><img src="img/analPTM.jpg" width=800 /></div>""")
@@ -2018,7 +2116,11 @@ if __name__ == '__main__':
     else:
         pass
 
-    report.print_firstpage()
+    if p.type == 'DIA':
+        report.print_firstpage_dia()
+    else:
+        report.print_firstpage_lfq()
+    # report.print_firstpage_dia()
     report.print_all_protein_function_analysis()
     report.print_motif_html()
     report.print_dep_protein_function_analysis()
