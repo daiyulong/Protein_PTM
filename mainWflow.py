@@ -191,9 +191,9 @@ def run_all_protein_analysis(bin, pn, org, celllocation):
     os.system("Rscript {}/tsv2xlsx.R {} {} {}".format(bin, pn + '/protein_summary.txt', 'summary', pn + '/summary.xlsx'))
 
 
-## ????
-"""多组之间比较的方差分析"""
-def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file, grouporder):
+## modified 2022.12.05
+"""多组之间比较分析"""
+def run_anova_analysis(bin, pn, org, outdir, input_file, input_group_file, grouporder, isft):
     olog.write("Rscript {}/extractTablePTM.R {} {}\n".format(bin, input_file, pn + '/matrix.txt'))
     os.system("Rscript {}/extractTablePTM.R {} {}".format(bin, input_file, pn + '/matrix.txt'))
 
@@ -201,8 +201,8 @@ def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file,
     os.system("Rscript {}/kmeans.R {} {} {} {}".format(bin, input_group_file, pn + '/matrix.txt', pn + '/kmeans', grouporder))
 
     # 挑选做比较绘图的文件
-    olog.write("Rscript {}/selectFileFromTotalPTM.R {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
-    os.system("Rscript {}/selectFileFromTotalPTM.R {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt'))
+    olog.write("Rscript {}/selectFileFromTotalPTM.R {} {} {} {} {} {}\n".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt', outdir, org, isft))
+    os.system("Rscript {}/selectFileFromTotalPTM.R {} {} {} {} {} {}".format(bin, pn + '/kmeans/ANOVA_result.xlsx', pn + '/input.txt', pn + '/ANOVA.sig.txt', outdir, org, isft))
 
     # 比较绘图
     olog.write("Rscript {}/dDEP4multiPTM.R {} {} {}\n".format(bin, pn + '/ANOVA.sig.txt_site.txt', input_group_file, pn + '/Multi_group_expression'))
@@ -216,10 +216,6 @@ def run_anova_analysis(bin, pn, org, celllocation, input_file, input_group_file,
     olog.write("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -d 4 -c 4\n".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin))
     os.system("Rscript {}/FuncAnal4ID.R -i {} -o {} -s {} -p {} -d 4 -c 4".format(bin, pn + '/ANOVA.sig.txt', pn, org, bin))
 
-#    ########细胞定位的分析的绘图
-#    if os.path.exists(p.pn + '/AllProtein/GOEnrich_Species/CC.txt'):
-#        olog.write("Rscript {}/dCellLoc.R {} {} {}\n".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
-#        os.system("Rscript {}/dCellLoc.R {} {} {}".format(bin, pn + '/GOEnrich_Species/CC.txt',pn + '/GO_subcellular_localization', celllocation))
 
     #####增加KEGG分类信息
     olog.write("{}/addURLClassKEGG {}/KEGG/KEGG.enriched.txt {}/KEGG/KEGG.enriched.xls\n".format(bin, pn, pn))
@@ -1586,7 +1582,7 @@ if __name__ == '__main__':
            anova_input_file = p.pn+'/Anova/'+row[1]+'/input.txt'
            anova_group_file = p.pn+'/Anova/'+row[1]+'/group.txt'
            # ANOVA检验
-           sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.celllocation, anova_input_file, anova_group_file, grouporder)
+           sig_number = run_anova_analysis(bin, p.pn+'/Anova/' + row[1], p.org, p.pn, anova_input_file, anova_group_file, grouporder, p.isft)
            ianova = open(p.pn+'/Anova/anova_sig_number.txt', 'a')
            ianova.write("{}\t{}\n".format(row[1], sig_number))
            ianova.close()
@@ -1630,15 +1626,15 @@ if __name__ == '__main__':
     olog.write("Rscript {0}/getAllDEP_Result.R {1} {2} {3}\n".format(bin,p.pf, p.isft, p.pn))
     os.system("Rscript {0}/getAllDEP_Result.R {1} {2} {3}".format(bin, p.pf, p.isft, p.pn))
 
-    # 差异蛋白功能分析 #
+    ##差异蛋白功能分析 #
     print("\n### Run DEP Functional Analysis ###\n")
     run_dep_function_analysis(L, bin, p.pn, p.org, p.celllocation, supp, olog)
-    # 差异柱状图合并 #
+    ##差异柱状图合并 #
     merge_updown_bar(L, p.pn, bin, olog)
-    #venn分析
+    ##venn分析
     venn_anal(L, p.pn, bin, olog)
 
-    #KESA富集分析
+    ##KESA富集分析
     ksea_analysis(bin, p.org, p.pn, p.isft, L, olog)
 
     #######挑选分析结果#######
@@ -1647,7 +1643,6 @@ if __name__ == '__main__':
 
     ###生成报告
     print("\n### Run Protein Report Analysis ###\n")
-
     olog.write("{} {}/proteinreport_PTM.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
     os.system("{} {}/proteinreport_PTM.py -i {} -ia {} -t {}".format(get_python(), bin, p.pn + '/' + p.pn + '_Result', p.pn, p.reporttype))
 
